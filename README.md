@@ -7,7 +7,7 @@ macOS 原生觸控板手勢與快捷鍵工具。支援兩指／三指雙擊、�
 - `outputs/`：本機安裝包、完整驗收記錄與 BTT 逆向分析交付，不納入 Git。
 - `work/`：本機原始證據、獨立接收端記錄、下載檔、分析工具與工作檔，不納入 Git。
 
-目前已安裝版本為 0.2.0，位於 `/Users/chunghan/Applications/TouchMiddle.app`。
+目前發行版本為 0.2.1，本機安裝位置為 `/Users/chunghan/Applications/TouchMiddle.app`。新增「狀態與設定 → 啟動設定」中的登入自動啟動開關；既有 0.2.0 驗收摘要不涵蓋此功能。
 
 [操作與建置說明](touchmiddle/README.txt) · [0.2.0 驗收摘要](docs/VERIFICATION.md)
 

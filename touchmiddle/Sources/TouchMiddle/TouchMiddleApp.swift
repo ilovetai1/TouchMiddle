@@ -57,6 +57,7 @@ private struct RuleEditorItem: Identifiable {
 
 struct Dashboard: View {
     @ObservedObject var controller: TouchController
+    @StateObject private var loginItem = LoginItemSettings()
     @State private var editor: RuleEditorItem?
     @State private var ruleError: String?
 
@@ -64,12 +65,15 @@ struct Dashboard: View {
         TabView {
             rulesPage
                 .tabItem { Text("手勢規則") }
-            settingsPage
+            ScrollView { settingsPage }
                 .tabItem { Text("狀態與設定") }
         }
         .padding(16)
         .sheet(item: $editor) { item in
             RuleEditor(controller: controller, rule: item.rule)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            loginItem.refresh()
         }
     }
 
@@ -122,6 +126,23 @@ struct Dashboard: View {
 
     private var settingsPage: some View {
         VStack(alignment: .leading, spacing: 16) {
+            GroupBox("啟動設定") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("登入 macOS 時自動啟動 TouchMiddle", isOn: Binding(
+                        get: { loginItem.isRegistered }, set: { loginItem.setEnabled($0) }
+                    ))
+                    .toggleStyle(.switch)
+                    Text(loginItem.statusMessage).font(.caption).foregroundStyle(.secondary)
+                    Text("開機後登入此帳號時生效；啟動後手勢仍預設暫停。")
+                        .font(.caption).foregroundStyle(.secondary)
+                    if loginItem.status == .requiresApproval {
+                        Button("開啟系統登入項目設定") { loginItem.openSystemSettings() }
+                    }
+                    if let message = loginItem.errorMessage {
+                        Text(message).font(.callout).foregroundStyle(.red).textSelection(.enabled)
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading).padding(6)
+            }
             GroupBox("觸控狀態") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -175,6 +196,7 @@ struct Dashboard: View {
             }
             Spacer(minLength: 0)
         }.padding(16)
+        .onAppear { loginItem.refresh() }
     }
 
     private func settingLine(_ label: String, value: String) -> some View {

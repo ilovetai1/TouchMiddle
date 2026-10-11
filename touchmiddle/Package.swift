@@ -9,6 +9,7 @@ let package = Package(
         .target(name: "TouchMiddleCore"),
         .target(name: "CTouchBridge", linkerSettings: [.linkedFramework("CoreFoundation")]),
         .executableTarget(name: "TouchMiddle", dependencies: ["TouchMiddleCore", "CTouchBridge"]),
-        .testTarget(name: "TouchMiddleCoreTests", dependencies: ["TouchMiddleCore"])
+        .testTarget(name: "TouchMiddleCoreTests", dependencies: ["TouchMiddleCore"]),
+        .testTarget(name: "TouchMiddleAppTests", dependencies: ["TouchMiddle"])
     ]
 )

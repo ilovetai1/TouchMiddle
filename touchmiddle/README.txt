@@ -1,4 +1,4 @@
-TouchMiddle 0.2.0 — 手勢、快捷鍵與 App 規則
+TouchMiddle 0.2.1 — 手勢、快捷鍵、App 規則與登入自動啟動設定
 
 安裝位置：/Users/chunghan/Applications/TouchMiddle.app
 原始碼：此目錄的 Sources/ 與 Tests/
@@ -10,6 +10,7 @@ TouchMiddle 0.2.0 — 手勢、快捷鍵與 App 規則
 4. 選擇「鍵盤快捷鍵」，按「錄製快捷鍵」後輸入自己的組合鍵，可包含 ⌘、⌥、⌃、⇧。錄製區只收下一組按鍵；Escape 停止錄製。也可把動作設成「中鍵（游標位置）」。
 5. 勾選「啟用此規則」並儲存。開啟「啟用手勢」，先碰一下觸控板，再把所有手指完全放開，完成校準。
 6. 切到目標 App 執行手勢。「最近動作」顯示本次送出的 App 與動作；結果仍取決於該 App 是否支援此快捷鍵。
+7. 在「狀態與設定」的「啟動設定」可開啟或關閉「登入 macOS 時自動啟動 TouchMiddle」。此設定由 macOS 登入項目管理，開機後登入目前帳號時生效；不會自動啟用手勢。若顯示尚未獲准，按「開啟系統登入項目設定」並允許 TouchMiddle。從系統設定返回 App 時會重新讀取狀態；失敗會顯示錯誤並保留系統實際狀態。請從固定安裝位置的 .app 操作，不要從 SwiftPM 執行檔或臨時建置位置登記。
 
 首次建立規則檔時，只建立原有的「全域三指輕點 → 中鍵」。兩指／三指雙擊的快捷鍵由使用者新增，不預設任何組合鍵。
 每次重新啟動預設暫停手勢，已儲存的規則會保留。選單列可啟用、暫停、開啟設定或結束。
@@ -37,7 +38,7 @@ TouchMiddle 0.2.0 — 手勢、快捷鍵與 App 規則
 本機驗收時，直接送到 PID 的鍵盤事件已被獨立接收端收到，但 App 自己的事件監視器仍為 0；此數字為 0 不能單獨判定快捷鍵送出失敗。
 --trace --log /新的絕對路徑.jsonl 會另記觸控座標、影格、前景 App 與處理延遲，用於本機驗收。App 拒絕覆寫既有診斷檔或使用連結檔。
 「4 秒後測試中鍵」只測手動中鍵輸出，請先把游標移到安全位置；它不能替代手勢或快捷鍵驗收。
-未加入上傳服務、更新服務或登入項目。
+未加入上傳服務或更新服務。登入項目只有在操作者開啟上述設定時才會登記；建置與啟動 App 本身不會自動登記。
 
 建置與驗證
 Tools/build-app.sh --output /全新絕對路徑/TouchMiddle.app
@@ -54,5 +55,6 @@ Tools/touch-probe.c 是唯讀觸控探測；Tools/MiddleEventReceiver.swift 與 
 0.1.0 歷史證據：原有 32 項核心／轉換測試通過；獨立接收端曾收到 10 組中鍵按下／放開，與三指辨識標記逐一相符，後續滑動／捲動沒有新增中鍵；Safari 普通 HTML 連結曾收到 DOM button 1 事件，分頁由 3 增至 4。這些證據只確認舊版三指輕點／中鍵，不代表新版雙擊或快捷鍵已驗收。
 0.2.0 驗收摘要位於工作區 outputs/touchmiddle-0.2.0-verification.json；原始驗收記錄位於 work/touchmiddle-rules-validation/。歷史中鍵紀錄位於 outputs/touchmiddle-verification.json 與 work/safari-middle-debug/result.json。
 本機環境為 Apple M5、內建觸控板、macOS 27.0.1。套件宣告最低 macOS 14，不代表已測試所有 macOS 14–27 裝置。
-使用 MultitouchSupport 私有 framework，適用目前自行使用的 MVP；macOS 升級後需重新驗證。未支援外接 Magic Trackpad、登入自動啟動、中鍵拖曳或其他 BTT 功能。
+使用 MultitouchSupport 私有 framework，適用目前自行使用的 MVP；macOS 升級後需重新驗證。未支援外接 Magic Trackpad、中鍵拖曳或其他 BTT 功能。
+新增登入自動啟動設定的實際登記／取消與重新登入驗收尚未執行；上述 0.2.0 歷史驗收不涵蓋此功能。
 真實 sleep/wake、長時間壓力與所有掌心接觸尚未驗證。原生框架沒有經本機驗證的掌心分類，App 不承諾辨別任意掌心形狀。
