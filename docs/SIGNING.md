@@ -2,7 +2,7 @@
 
 ## 此測試包的狀態
 
-`0.2.1-beta.1` 公開測試包使用 **ad-hoc 臨時簽章**，沒有 Apple Developer ID 憑證，也沒有 Apple 公證（notarization）。簽章完整性檢查通過，不代表 Apple 已信任作者或已檢查 App 的安全性。
+`0.2.2-beta.1` 公開測試包使用 **ad-hoc 臨時簽章**，沒有 Apple Developer ID 憑證，也沒有 Apple 公證（notarization）。簽章完整性檢查通過，不代表 Apple 已信任作者或已檢查 App 的安全性。
 
 MIT 是原始碼使用與散布的授權，不會取代 macOS 的安全檢查，也不會自動授予輔助使用權限。GitHub 提供原始碼及安裝包下載，不會替 App 取得 Apple 信任。
 

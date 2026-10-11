@@ -26,7 +26,7 @@ python3 -m unittest discover -s scripts/tests
 bash touchmiddle/Tools/build-app.sh --output /tmp/TouchMiddle-dev.app
 ```
 
-建置後手動開啟 App。觸控輸出需輔助使用權限；每次啟動預設暫停手勢。建置不會授權、啟動 App 或登記登入項目。
+建置後手動開啟 App。觸控輸出需輔助使用權限；權限、設定與觸控來源正常時，啟動後手勢預設啟用，並需完成觸控校準。建置不會授權、啟動 App 或登記登入項目。
 
 ## 程式風格與命名
 

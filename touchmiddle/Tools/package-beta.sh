@@ -18,11 +18,11 @@ fi
 tools_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_dir="$(cd -- "$tools_dir/../.." && pwd -P)"
 version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$tools_dir/Info.plist")"
-if [[ "$version" != 0.2.1 ]]; then
-    printf 'Expected app version 0.2.1; update beta metadata before packaging.\n' >&2
+if [[ "$version" != 0.2.2 ]]; then
+    printf 'Expected app version 0.2.2; update beta metadata before packaging.\n' >&2
     exit 5
 fi
-name=TouchMiddle-0.2.1-beta.1-macos-arm64
+name=TouchMiddle-0.2.2-beta.1-macos-arm64
 scratch="$(mktemp -d /tmp/touchmiddle-beta.XXXXXX)"
 cleanup() {
     case "$scratch" in
@@ -42,7 +42,7 @@ cp "$repo_dir/LICENSE" "$scratch/$name/LICENSE"
 cp "$repo_dir/docs/INSTALL.md" "$scratch/$name/INSTALL.md"
 cp "$repo_dir/docs/SIGNING.md" "$scratch/$name/SIGNING.md"
 cp "$repo_dir/touchmiddle/README.txt" "$scratch/$name/OPERATION.txt"
-cp "$repo_dir/docs/RELEASE-0.2.1-beta.1.md" "$scratch/$name/RELEASE-NOTES.md"
+cp "$repo_dir/docs/RELEASE-0.2.2-beta.1.md" "$scratch/$name/RELEASE-NOTES.md"
 ditto -c -k --norsrc --keepParent "$scratch/$name" "$scratch/$name.zip"
 (
     cd "$scratch"

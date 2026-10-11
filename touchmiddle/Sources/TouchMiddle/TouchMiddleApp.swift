@@ -143,7 +143,7 @@ struct Dashboard: View {
                     ))
                     .toggleStyle(.switch)
                     Text(loginItem.statusMessage).font(.caption).foregroundStyle(.secondary)
-                    Text("開機後登入此帳號時生效；啟動後手勢仍預設暫停。")
+                    Text("開機後登入此帳號時生效；權限與觸控來源正常時，啟動後手勢預設啟用。")
                         .font(.caption).foregroundStyle(.secondary)
                     if loginItem.status == .requiresApproval {
                         Button("開啟系統登入項目設定") { loginItem.openSystemSettings() }

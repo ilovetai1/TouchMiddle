@@ -75,6 +75,7 @@ final class TouchController: ObservableObject {
         } catch { rulesLoadFailed = true; setIssue("rules", "規則載入失敗：\(error.localizedDescription)") }
         refreshPermissions()
         if errorMessage == nil { startSource() }
+        if permissionGranted && errorMessage == nil { setEnabled(true) }
         installMonitors()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.heartbeat() }
