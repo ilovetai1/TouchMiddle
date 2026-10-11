@@ -7,8 +7,15 @@ import TouchMiddleCore
 struct TouchMiddleApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     var body: some Scene {
-        MenuBarExtra("TouchMiddle", systemImage: "hand.tap") {
+        MenuBarExtra {
             TouchMiddleMenu(controller: delegate.controller, showWindow: delegate.showWindow)
+        } label: {
+            Label {
+                Text("TouchMiddle")
+            } icon: {
+                Image(nsImage: TouchMiddleIcon.menuBarImage).renderingMode(.template)
+            }
+            .labelStyle(.iconOnly)
         }
     }
 }
@@ -80,7 +87,10 @@ struct Dashboard: View {
     private var rulesPage: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
-                Image(systemName: "hand.tap").font(.system(size: 32)).foregroundStyle(.tint)
+                Image(nsImage: TouchMiddleIcon.menuBarImage)
+                    .renderingMode(.template).resizable().scaledToFit()
+                    .frame(width: 32, height: 32).foregroundStyle(.primary)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("手勢與快捷鍵").font(.title2.bold())
                     Text("為全域或指定 App 設定觸控板手勢。")

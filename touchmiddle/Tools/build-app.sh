@@ -67,7 +67,7 @@ fi
 
 tools_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 package_dir="$(cd -- "$tools_dir/.." && pwd -P)"
-for command in xcrun codesign plutil python3 security; do
+for command in xcrun codesign plutil python3 security iconutil; do
     if ! command -v "$command" >/dev/null 2>&1; then
         printf 'Required command unavailable: %s\n' "$command" >&2
         exit 4
@@ -122,6 +122,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
+xcrun swiftc -parse-as-library "$package_dir/Sources/TouchMiddle/TouchMiddleIcon.swift" \
+    "$tools_dir/GenerateIcons.swift" -o "$scratch/generate-icons"
+"$scratch/generate-icons" "$scratch/icons"
+iconutil --convert icns "$scratch/icons/AppIcon.iconset" --output "$scratch/icons/AppIcon.icns"
+
 xcrun swift build --package-path "$package_dir" --scratch-path "$scratch/swiftpm" \
     --configuration release --product TouchMiddle
 binary_dir="$(xcrun swift build --package-path "$package_dir" \
@@ -135,6 +140,7 @@ staged_app="$scratch/TouchMiddle.app"
 mkdir -p "$staged_app/Contents/MacOS" "$staged_app/Contents/Resources"
 cp "$binary_dir/TouchMiddle" "$staged_app/Contents/MacOS/TouchMiddle"
 cp "$tools_dir/Info.plist" "$staged_app/Contents/Info.plist"
+cp "$scratch/icons/AppIcon.icns" "$staged_app/Contents/Resources/AppIcon.icns"
 cp "$package_dir/../LICENSE" "$staged_app/Contents/Resources/LICENSE"
 printf 'APPL????' > "$staged_app/Contents/PkgInfo"
 plutil -lint "$staged_app/Contents/Info.plist"
