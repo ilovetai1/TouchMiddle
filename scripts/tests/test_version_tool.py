@@ -64,6 +64,10 @@ class VersionToolTests(unittest.TestCase):
                 if name == "README.md":
                     changed = original.replace(f'目前原始碼版本：`{self.original["CFBundleShortVersionString"]}`',
                                                '目前原始碼版本：`99.99.99`', 1)
+                elif name == "CHANGELOG.md":
+                    changed = original.replace(
+                        f'## v{self.original["CFBundleShortVersionString"]}（',
+                        '## v99.99.99（', 1)
                 else:
                     changed = original.replace(self.original["CFBundleShortVersionString"], "99.99.99", 1)
                 path.write_text(changed)

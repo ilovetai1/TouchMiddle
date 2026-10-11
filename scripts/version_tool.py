@@ -87,7 +87,10 @@ def bump(root, kind, summary, dry_run=False):
             date = datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat()
             entry = (f"## v{new_version}（{date}）\n\n> {summary}\n\n"
                      f"- Build：{new_build}\n- 驗證結果：待補。\n- 未驗證事項：待補。\n\n")
-            updates[path] = text[:match.start()] + entry + text[match.start():]
+            # Keep every historical release, including beta entries, below
+            # the new current version rather than inserting after a beta.
+            first_release = re.search(r"(?m)^## v", text).start()
+            updates[path] = text[:first_release] + entry + text[first_release:]
         else:
             # Replace from the right so original match offsets remain valid.
             if path.name == "README.md":
