@@ -1,6 +1,6 @@
 TouchMiddle 0.2.1 — 手勢、快捷鍵、App 規則與登入自動啟動設定
 
-安裝位置：/Users/chunghan/Applications/TouchMiddle.app
+安裝位置：/Applications/TouchMiddle.app 或 ~/Applications/TouchMiddle.app
 原始碼：此目錄的 Sources/ 與 Tests/
 
 使用方式
@@ -32,8 +32,8 @@ TouchMiddle 0.2.1 — 手勢、快捷鍵、App 規則與登入自動啟動設定
 本版接收觸控資料並送出動作，沒有攔截 macOS 原有手勢；原生手勢可能同時觸發。
 
 規則與診斷檔案
-規則存放於 /Users/chunghan/Library/Application Support/TouchMiddle/rules.json；儲存時以權限 0600 的暫存檔原子更換。無效內容與連結檔會報錯，不會悄悄覆寫成預設規則。
-一般診斷存放於 /Users/chunghan/Library/Application Support/TouchMiddle/Diagnostics/，檔案權限 0600，只記錄狀態與辨識／輸出結果。
+規則存放於 ~/Library/Application Support/TouchMiddle/rules.json；儲存時以權限 0600 的暫存檔原子更換。無效內容與連結檔會報錯，不會悄悄覆寫成預設規則。
+一般診斷存放於 ~/Library/Application Support/TouchMiddle/Diagnostics/，檔案權限 0600，只記錄狀態與辨識／輸出結果。
 「辨識」計算符合條件的手勢，包括暫停時的唯讀辨識；「送出」表示已呼叫事件輸出；「觀察到事件」表示 App 的事件監視器看到同一標記的按下與放開。這些數字不等於目標 App 已完成快捷鍵動作，仍需實際結果驗收。
 本機驗收時，直接送到 PID 的鍵盤事件已被獨立接收端收到，但 App 自己的事件監視器仍為 0；此數字為 0 不能單獨判定快捷鍵送出失敗。
 --trace --log /新的絕對路徑.jsonl 會另記觸控座標、影格、前景 App 與處理延遲，用於本機驗收。App 拒絕覆寫既有診斷檔或使用連結檔。
@@ -44,6 +44,8 @@ TouchMiddle 0.2.1 — 手勢、快捷鍵、App 規則與登入自動啟動設定
 Tools/build-app.sh --output /全新絕對路徑/TouchMiddle.app
 xcrun swift test --scratch-path /tmp/touchmiddle-tests
 需本機 Xcode/Swift；不需要外部 Swift 套件。建置腳本拒絕覆寫既存 App。
+本機有 ~/Library/Application Support/TouchMiddle/Signing/identity.json 時，建置使用其中的固定 Code Signing 憑證指紋；私鑰留在鑰匙圈。設定無效或憑證不存在時中止，不會改用 ad-hoc。沒有本機設定時維持原有 ad-hoc；也可用 --signing-identity SHA1 指定憑證，或 --ad-hoc 明確選擇臨時簽章。測試版打包固定採 ad-hoc。
+首次從 ad-hoc 更換簽章後需重新授權；不同建置須符合相同的簽章身分要求，才可能沿用權限。固定憑證不會自動授予輔助使用權限，也不等於 Apple Developer ID 或公證。
 Tools/touch-probe.c 是唯讀觸控探測；Tools/MiddleEventReceiver.swift 與 Tools/KeyboardEventReceiver.swift 是獨立接收端。Tools/KeyboardEventFieldsCheck.swift 可驗證快捷鍵事件欄位，不會送出事件。
 
 驗收狀態與限制
@@ -55,6 +57,12 @@ Tools/touch-probe.c 是唯讀觸控探測；Tools/MiddleEventReceiver.swift 與 
 0.1.0 歷史證據：原有 32 項核心／轉換測試通過；獨立接收端曾收到 10 組中鍵按下／放開，與三指辨識標記逐一相符，後續滑動／捲動沒有新增中鍵；Safari 普通 HTML 連結曾收到 DOM button 1 事件，分頁由 3 增至 4。這些證據只確認舊版三指輕點／中鍵，不代表新版雙擊或快捷鍵已驗收。
 0.2.0 驗收摘要位於工作區 outputs/touchmiddle-0.2.0-verification.json；原始驗收記錄位於 work/touchmiddle-rules-validation/。歷史中鍵紀錄位於 outputs/touchmiddle-verification.json 與 work/safari-middle-debug/result.json。
 本機環境為 Apple M5、內建觸控板、macOS 27.0.1。套件宣告最低 macOS 14，不代表已測試所有 macOS 14–27 裝置。
-使用 MultitouchSupport 私有 framework，適用目前自行使用的 MVP；macOS 升級後需重新驗證。未支援外接 Magic Trackpad、中鍵拖曳或其他 BTT 功能。
+使用 MultitouchSupport 私有 framework，目前為公開分享前的測試版；macOS 升級後需重新驗證。未支援外接 Magic Trackpad、中鍵拖曳或其他 BTT 功能。
 新增登入自動啟動設定的實際登記／取消與重新登入驗收尚未執行；上述 0.2.0 歷史驗收不涵蓋此功能。
 真實 sleep/wake、長時間壓力與所有掌心接觸尚未驗證。原生框架沒有經本機驗證的掌心分類，App 不承諾辨別任意掌心形狀。
+
+作者與開源授權
+作者：ilovetai1（https://github.com/ilovetai1）
+專案：https://github.com/ilovetai1/TouchMiddle
+採用 MIT 授權，允許所有人使用、修改、散布與商業使用；散布時須保留版權與授權文字。不要求修改後的版本開源。完整英文條款見倉庫與安裝包的 LICENSE，App 內副本位於 Contents/Resources/LICENSE。軟體按現況提供，不附保固。
+安裝與更新步驟見倉庫 docs/INSTALL.md，或安裝包的 INSTALL.md。沒有 Apple Developer ID 簽章或公證；首次開啟可能需要手動允許。

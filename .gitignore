@@ -21,3 +21,7 @@ xcuserdata/
 *.zip
 *.dmg
 *.jsonl
+
+# Python tool caches.
+__pycache__/
+*.py[cod]

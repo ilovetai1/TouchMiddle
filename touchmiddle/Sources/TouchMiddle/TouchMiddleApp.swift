@@ -194,6 +194,30 @@ struct Dashboard: View {
                 }
                 Spacer()
             }
+            GroupBox("關於 TouchMiddle 與開源授權") {
+                VStack(alignment: .leading, spacing: 10) {
+                    if let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String {
+                        Text("TouchMiddle \(version) · 測試版").font(.headline)
+                    } else {
+                        Text("TouchMiddle · 測試版（版本資訊缺失）").font(.headline)
+                    }
+                    HStack {
+                        Text("作者：")
+                        Link("ilovetai1", destination: URL(string: "https://github.com/ilovetai1")!)
+                        Spacer()
+                        Link("GitHub 專案", destination: URL(string: "https://github.com/ilovetai1/TouchMiddle")!)
+                    }
+                    Text("MIT 授權：所有人皆可免費使用、修改、散布及商業使用。散布副本或重要部分時，必須保留版權與授權文字；不要求公開修改後的原始碼。")
+                    Text("軟體按現況提供，不附保固；作者不承擔授權條款所列責任。完整英文條款附於安裝包與 App 的 LICENSE 檔案。")
+                    Divider()
+                    Text("測試版限制：目前實機驗證僅涵蓋 Apple M5 的內建觸控板；外接觸控板、Intel 與其他 macOS 版本尚未驗證。可能漏判或誤觸，原生手勢也可能同時觸發。macOS 升級後需重新驗證。")
+                    Text("此版本未使用 Apple Developer ID 簽章或公證。首次開啟可能需要手動允許；輸出動作需要輔助使用權限。登入自動啟動的重新登入驗收尚未完成。")
+                }
+                .font(.callout)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(6)
+            }
             Spacer(minLength: 0)
         }.padding(16)
         .onAppear { loginItem.refresh() }
