@@ -1,0 +1,23 @@
+# Local research, downloaded third-party software, packages and raw diagnostics.
+/work/
+/outputs/
+
+# Swift/Xcode build products and local state.
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.DS_Store
+
+# Credentials and local environment configuration.
+.env
+.env.*
+*.pem
+*.key
+
+# Generated apps, archives and diagnostic traces.
+*.app/
+*.zip
+*.dmg
+*.jsonl
