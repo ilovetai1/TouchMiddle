@@ -29,6 +29,23 @@ macOS 原生觸控板手勢與快捷鍵工具。支援兩指／三指雙擊、�
 - 真實 sleep/wake、長時間壓力、任意掌心接觸與登入自動啟動的重新登入驗收尚未完成。
 - 未加入上傳或自動更新服務，使用者自行從 Releases 更新。
 
+## 開發過程
+
+TouchMiddle 起於我對市面上觸控板控制工具的逆向研究。我透過 [REA（Reverse Engineer Anything）](https://github.com/morluto/rea) 專案，讓 Codex 連接 Ghidra，分析 BetterTouchTool（BTT）的 macOS 原生發行檔，再以調查結果作為設計線索，逐步開發目前的 Swift 原生觸控板工具。
+
+開發過程如下：
+
+1. **先調查既有工具的架構。** 以 BetterTouchTool 6.908 的 arm64 發行樣本為對象，檢查封裝、符號、framework、反組譯與選定的呼叫路徑，研究觸控輸入、手勢處理、動作派送及腳本的程序邊界。REA 負責工具整合，Codex 協助追蹤與整理證據，Ghidra 提供原生程式分析；曾成功反編譯小型 XPC helper。
+2. **收斂成可驗證的 MVP。** 從「三指輕點 → 游標位置中鍵」開始，先用唯讀探測確認內建觸控板可接收全域接觸資料，再加入動作輸出。BTT 樣本中的 MultitouchSupport 使用線索，以及公開的觸控介面資料，都用來協助查核；私有資料結構仍須以本機探測確認。
+3. **實作 TouchMiddle 的辨識與介面。** 以 Swift／SwiftUI 建立選單列 App，使用 C bridge 接收觸控資料，在本專案中實作點按條件、手勢狀態、校準、取消與冷卻邏輯，並透過 macOS 事件 API 輸出中鍵及快捷鍵。相關實作見 [CTouchBridge](touchmiddle/Sources/CTouchBridge/CTouchBridge.c) 與 [TouchMiddleCore](touchmiddle/Sources/TouchMiddleCore)。
+4. **擴充成可編輯的手勢規則。** 加入兩指／三指雙擊、快捷鍵錄製、本機規則儲存，以及全域與指定 App 的對應。指定 App 的已啟用規則優先；切換 App 時取消尚未完成的手勢，避免把動作送到錯誤目標。
+5. **以測試與實際接收結果驗證。** 除自動測試外，使用獨立接收端核對事件的按下／放開、鍵碼、修飾鍵與目標 App，並由真人操作觸控板測試點按、滑動與捲動。0.2.0 的分段測試通過，但首輪漏判及額外事件原因仍為 `unclear`，保留於[驗收摘要](docs/VERIFICATION.md)。目前公開測試版另有 73 項 Swift 測試與 8 項版本工具測試通過，見[測試包驗證](docs/BETA-VERIFICATION.md)。
+6. **整理成可分享的開源測試版。** 加入登入自動啟動設定、作者與授權資訊、版本管理、安裝及簽章處理說明，以 MIT 授權公開原始碼，並透過 GitHub Releases 提供 Apple Silicon 測試包。本機自用可使用固定自簽憑證；公開測試包使用 ad-hoc，未做 Apple Developer ID 簽章或公證。
+
+逆向研究的結論有明確範圍：BTT 主程式的 Ghidra 全檔分析曾在 20 分鐘期限後逾時，沒有產生完整主程式偽碼或 call graph；所查的靜態路徑也沒有完成 BTT 的執行時驗證。因此，不能將本專案描述為完整還原 BTT，或宣稱兩者使用相同的手勢演算法。
+
+公開倉庫提供 TouchMiddle 的原始碼、測試與文件。研究用的 BTT 發行檔、抽取資料與原始分析記錄保留在本機，不納入 Git；本專案的 MIT 授權適用範圍不包含這些第三方研究材料。
+
 ## 從原始碼建置
 
 需要 macOS、Xcode/Swift 6 與 `python3`；沒有外部 Swift 套件。從倉庫根目錄執行：
