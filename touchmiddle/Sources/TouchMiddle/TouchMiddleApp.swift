@@ -4,39 +4,70 @@ import UniformTypeIdentifiers
 import TouchMiddleCore
 
 @main
-struct TouchMiddleApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    var body: some Scene {
-        MenuBarExtra {
-            TouchMiddleMenu(controller: delegate.controller, showWindow: delegate.showWindow)
-        } label: {
-            Label {
-                Text("TouchMiddle")
-            } icon: {
-                Image(nsImage: TouchMiddleIcon.menuBarImage).renderingMode(.template)
-            }
-            .labelStyle(.iconOnly)
+struct TouchMiddleApp {
+    @MainActor
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        withExtendedLifetime(delegate) {
+            app.run()
         }
     }
 }
 
-private struct TouchMiddleMenu: View {
-    @ObservedObject var controller: TouchController
-    let showWindow: () -> Void
-    var body: some View {
-        Button(controller.enabled ? "暫停手勢" : "啟用手勢") { controller.setEnabled(!controller.enabled) }
-        Button("開啟手勢與設定", action: showWindow)
-        Divider()
-        Button("結束 TouchMiddle") { NSApp.terminate(nil) }
-    }
-}
-
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let controller = TouchController()
     private var window: NSWindow?
-    func applicationDidFinishLaunching(_ notification: Notification) { showWindow() }
-    func applicationWillTerminate(_ notification: Notification) { controller.shutdown() }
+    private var statusItem: NSStatusItem?
+    private var defaultsObserver: NSObjectProtocol?
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        updateMenuBarIcon()
+        defaultsObserver = NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.updateMenuBarIcon() }
+        }
+        showWindow()
+    }
+    func applicationWillTerminate(_ notification: Notification) {
+        if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
+        controller.shutdown()
+    }
+    private func updateMenuBarIcon() {
+        let showIcon = UserDefaults.standard.object(forKey: "showMenuBarIcon") == nil
+            || UserDefaults.standard.bool(forKey: "showMenuBarIcon")
+        if showIcon {
+            guard statusItem == nil else { return }
+            let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+            item.button?.image = TouchMiddleIcon.menuBarImage
+            item.button?.toolTip = "TouchMiddle"
+            let menu = NSMenu()
+            menu.delegate = self
+            for (title, action) in [
+                ("啟用手勢", #selector(toggleGestures)),
+                ("開啟手勢與設定", #selector(openSettings)),
+                ("結束 TouchMiddle", #selector(quit))
+            ] {
+                if action == #selector(quit) { menu.addItem(.separator()) }
+                let entry = NSMenuItem(title: title, action: action, keyEquivalent: "")
+                entry.target = self
+                menu.addItem(entry)
+            }
+            item.menu = menu
+            statusItem = item
+        } else if let item = statusItem {
+            NSStatusBar.system.removeStatusItem(item)
+            statusItem = nil
+        }
+    }
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.items.first?.title = controller.enabled ? "暫停手勢" : "啟用手勢"
+    }
+    @objc private func toggleGestures() { controller.setEnabled(!controller.enabled) }
+    @objc private func openSettings() { showWindow() }
+    @objc private func quit() { NSApp.terminate(nil) }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showWindow()
@@ -64,6 +95,7 @@ private struct RuleEditorItem: Identifiable {
 
 struct Dashboard: View {
     @ObservedObject var controller: TouchController
+    @AppStorage("showMenuBarIcon") private var showMenuBarIcon = true
     @StateObject private var loginItem = LoginItemSettings()
     @State private var editor: RuleEditorItem?
     @State private var ruleError: String?
@@ -136,6 +168,14 @@ struct Dashboard: View {
 
     private var settingsPage: some View {
         VStack(alignment: .leading, spacing: 16) {
+            GroupBox("選單列圖示") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Toggle("在選單列顯示 TouchMiddle 圖示", isOn: $showMenuBarIcon)
+                        .toggleStyle(.switch)
+                    Text("隱藏圖示不會暫停手勢。若關閉此視窗，可再次開啟 TouchMiddle App 回到設定。")
+                        .font(.caption).foregroundStyle(.secondary)
+                }.frame(maxWidth: .infinity, alignment: .leading).padding(6)
+            }
             GroupBox("啟動設定") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("登入 macOS 時自動啟動 TouchMiddle", isOn: Binding(

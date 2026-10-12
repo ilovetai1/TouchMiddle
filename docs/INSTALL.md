@@ -1,6 +1,6 @@
 # TouchMiddle 測試版安裝說明
 
-作者：ilovetai1 · MIT 授權 · 測試包：0.2.2-beta.1 · App：0.2.2／build 4
+作者：ilovetai1 · MIT 授權 · 測試包：0.3.0-beta.1 · App：0.3.0／build 5
 
 ## 系統需求
 
@@ -10,7 +10,7 @@
 
 ## 首次安裝
 
-1. 從作者的 GitHub Releases 下載 `TouchMiddle-0.2.2-beta.1-macos-arm64.zip`，解壓縮後閱讀其中的 `LICENSE`。「Source code」ZIP 僅供自行建置。
+1. 從作者的 GitHub Releases 下載 `TouchMiddle-0.3.0-beta.1-macos-arm64.zip`，解壓縮後閱讀其中的 `LICENSE`。「Source code」ZIP 僅供自行建置。
 2. 將 `TouchMiddle.app` 拖到「應用程式」資料夾（`/Applications` 或 `~/Applications`），不要直接從 ZIP 或暫存位置執行。
 3. 雙擊 App。此測試版沒有 Apple Developer ID 簽章或公證，macOS 可能阻擋首次開啟。
 4. 若顯示無法驗證開發者，確認來源與檔案可信後，開啟「系統設定 → 隱私權與安全性」，找到 TouchMiddle 的提示，選擇「仍要打開」（Open Anyway），依系統要求確認。此操作只允許這個 App，不需要關閉 Gatekeeper。
@@ -22,6 +22,10 @@
 雙擊是輕點、完全放開、再輕點，不需要壓下觸控板。三指輕點中鍵發生在游標位置；Safari 開連結新分頁時，游標須位於支援中鍵的連結上。
 
 若首次開啟被阻擋，或「輔助使用」開關已開但 App 仍顯示未授權，請閱讀 [SIGNING.md](SIGNING.md)。該說明區分臨時簽章、本機自簽憑證與 Apple 公證，並提供重新加入目前版本授權的步驟。
+
+## 選單列圖示（選用）
+
+在「狀態與設定 → 選單列圖示」切換「在選單列顯示 TouchMiddle 圖示」。預設顯示，選擇會保留到下次啟動。隱藏圖示不會暫停手勢；若關閉設定視窗，可再次開啟安裝位置的 TouchMiddle.app，回到設定並恢復圖示。
 
 ## 登入自動啟動（選用）
 
