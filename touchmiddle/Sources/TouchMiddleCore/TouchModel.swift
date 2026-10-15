@@ -106,6 +106,8 @@ public enum GestureRejectionReason: Sendable, Equatable {
     case contactRestarted(contactID: Int)
     case contactReturnedAfterGap(contactID: Int)
     case frameGapExceeded
+    case anchorReleased
+    case tapNotBesideAnchors
 }
 
 public enum RecognitionDiagnostic: Sendable, Equatable {

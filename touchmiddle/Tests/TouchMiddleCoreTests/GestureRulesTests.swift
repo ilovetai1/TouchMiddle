@@ -81,7 +81,7 @@ final class GestureRulesTests: XCTestCase {
     }
 
     func testUnsupportedVersionAndEmptyApplicationAreRejected() {
-        XCTAssertThrowsError(try RuleConfiguration(rules: [], version: 2).validate()) {
+        XCTAssertThrowsError(try RuleConfiguration(rules: [], version: 3).validate()) {
             XCTAssertEqual($0 as? RuleValidationError, .unsupportedVersion)
         }
         XCTAssertThrowsError(try RuleConfiguration(rules: [
@@ -121,5 +121,34 @@ final class GestureRulesTests: XCTestCase {
         XCTAssertEqual(configuration.resolve(.threeFingerTap, bundleIdentifier: "com.apple.Safari")?.action, .middleClick)
         XCTAssertNil(configuration.resolve(.twoFingerDoubleTap, bundleIdentifier: "com.apple.Safari"))
         XCTAssertNil(configuration.resolve(.threeFingerDoubleTap, bundleIdentifier: "com.apple.Safari"))
+        XCTAssertNil(configuration.resolve(.twoFingerHoldLeftTap, bundleIdentifier: "com.apple.Safari"))
+        XCTAssertNil(configuration.resolve(.twoFingerHoldRightTap, bundleIdentifier: "com.apple.Safari"))
+    }
+
+    func testAnchoredLeftAndRightRulesRoundTripAndResolveIndependently() throws {
+        let app = RuleScope.application(bundleIdentifier: "com.apple.Safari", name: "Safari")
+        let leftGlobal = rule(.twoFingerHoldLeftTap, action: .shortcut(shortcut(123, label: "←")))
+        let rightGlobal = rule(.twoFingerHoldRightTap, action: .shortcut(shortcut(124, label: "→")))
+        let leftApp = rule(.twoFingerHoldLeftTap, scope: app, action: .middleClick)
+        let disabledRightApp = rule(.twoFingerHoldRightTap, scope: app, enabled: false)
+        let configuration = RuleConfiguration(rules: [leftGlobal, rightGlobal, leftApp, disabledRightApp])
+        try configuration.validate()
+        let decoded = try JSONDecoder().decode(RuleConfiguration.self, from: JSONEncoder().encode(configuration))
+        try decoded.validate()
+        XCTAssertEqual(decoded, configuration)
+        XCTAssertEqual(decoded.resolve(.twoFingerHoldLeftTap, bundleIdentifier: "com.apple.Safari"), leftApp)
+        XCTAssertEqual(decoded.resolve(.twoFingerHoldRightTap, bundleIdentifier: "com.apple.Safari"), rightGlobal)
+        XCTAssertEqual(decoded.resolve(.twoFingerHoldLeftTap, bundleIdentifier: "com.apple.finder"), leftGlobal)
+        XCTAssertEqual(decoded.gestures(bundleIdentifier: "com.apple.Safari"),
+                       [.twoFingerHoldLeftTap, .twoFingerHoldRightTap])
+    }
+
+    func testDuplicateAnchoredGestureInSameScopeIsRejected() {
+        for gesture in [GestureKind.twoFingerHoldLeftTap, .twoFingerHoldRightTap] {
+            let configuration = RuleConfiguration(rules: [rule(gesture), rule(gesture, enabled: false)])
+            XCTAssertThrowsError(try configuration.validate()) {
+                XCTAssertEqual($0 as? RuleValidationError, .duplicateRule)
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Pure recognition of light taps from complete, normalized touch snapshots.
+/// Pure recognition of light taps and anchored taps from normalized touch snapshots.
 /// A double tap requires two separately released groups of the same finger count.
 public struct ConfigurableGestureRecognizer: Sendable {
     public private(set) var configuration: TapConfiguration
@@ -31,9 +31,16 @@ public struct ConfigurableGestureRecognizer: Sendable {
     /// The caller can schedule a monotonic timer even when the sensor stops sending empty frames.
     /// During an eligible second tap, wait for its release or maximum duration instead.
     public func pendingDeadline(deviceID: String) -> Double? {
-        guard let state = devices[deviceID], let pending = state.pending else { return nil }
+        guard let state = devices[deviceID] else { return nil }
+        if let startedAt = state.anchored?.tapStartedAt { return startedAt + configuration.maximumDuration }
+        // Anchor preparation can outlast the ordinary tap duration; release resumes pending-tap timing.
+        if let anchored = state.anchored { return anchored.pendingRelease.map { $0 + doubleTapInterval } }
+        if state.candidate?.contacts.count == 1, let gestures = environment?.gestures,
+           !gestures.isDisjoint(with: AnchoredTapSession.gestures) { return nil }
+        guard let pending = state.pending else { return nil }
         if let candidate = state.candidate, candidate.startedAt <= pending.releasedAt + doubleTapInterval + epsilon {
-            return candidate.startedAt + configuration.maximumDuration
+            let limit = candidate.contacts.count == 3 && environment?.gestures.contains(.threeFingerLongPress) == true ? 2.0 : configuration.maximumDuration
+            return candidate.startedAt + limit
         }
         return pending.releasedAt + doubleTapInterval
     }
@@ -80,8 +87,10 @@ public struct ConfigurableGestureRecognizer: Sendable {
         state.lastActiveCount = active.count
 
         // Invalid physical groups cancel the first tap too; they must never later flush a shortcut.
-        let countLimit = gestures.contains(.threeFingerTap) || gestures.contains(.threeFingerDoubleTap) ? 3 : 2
-        if Set(frame.contacts.map(\.id)).count > countLimit {
+        let anchorsEnabled = !gestures.isDisjoint(with: AnchoredTapSession.gestures)
+        let countLimit = gestures.contains(.fourFingerTap) ? 4 : (gestures.contains(.threeFingerTap) || gestures.contains(.threeFingerDoubleTap) || gestures.contains(.threeFingerLongPress) || anchorsEnabled ? 3 : 2)
+        let physicalContacts = state.anchored?.relevantContacts(in: frame) ?? frame.contacts
+        if Set(physicalContacts.map(\.id)).count > countLimit {
             return reject(.tooManyContacts, frame, &state, activeCount: active.count)
         }
         if let palm = frame.contacts.first(where: { $0.isPalm }) {
@@ -100,17 +109,76 @@ public struct ConfigurableGestureRecognizer: Sendable {
             devices[frame.deviceID] = state
             return outcome(state, timestamp: frame.timestamp, diagnostics: [])
         }
-        if let until = state.suppressionUntil, frame.timestamp + epsilon < until {
+        if let until = state.suppressionUntil, frame.timestamp + epsilon < until,
+           state.anchored?.isEngaged != true {
             if !active.isEmpty { state.blocked = true }
             devices[frame.deviceID] = state
             return outcome(state, timestamp: frame.timestamp, diagnostics: active.isEmpty ? [] : [.cooldownSuppressed])
         }
-        state.cooldownUntil = nil
-        state.burstSuppressionUntil = nil
+        if let until = state.cooldownUntil, frame.timestamp + epsilon >= until { state.cooldownUntil = nil }
+        if let until = state.burstSuppressionUntil, frame.timestamp + epsilon >= until { state.burstSuppressionUntil = nil }
 
-        if let previousTimestamp, state.candidate != nil,
+        if let previousTimestamp, state.candidate != nil || state.anchored != nil,
            frame.timestamp - previousTimestamp > configuration.maximumFrameGap + epsilon {
             return reject(.frameGapExceeded, frame, &state, activeCount: active.count)
+        }
+
+        if anchorsEnabled {
+            // A short two-finger group still participates in ordinary double taps.
+            // Once a third finger joins held anchors, the session owns all input until release.
+            let desiredAnchorCount = active.count == 1 && !gestures.isDisjoint(with: AnchoredTapSession.oneFingerGestures) ? 1 : 2
+            let canStartAnchors = desiredAnchorCount == 1 || !gestures.isDisjoint(with: AnchoredTapSession.twoFingerGestures)
+            if state.anchored == nil, canStartAnchors, active.count == desiredAnchorCount,
+               state.candidate == nil || Set(state.candidate!.contacts.keys).union(active.map(\.id)).count <= desiredAnchorCount {
+                state.anchored = AnchoredTapSession(contacts: active, timestamp: frame.timestamp)
+            }
+            if var anchored = state.anchored {
+                let deferred = anchored.flush(timestamp: frame.timestamp, interval: doubleTapInterval, cooldown: configuration.cooldown, gestures: gestures)
+                let progress = anchored.process(frame, configuration: configuration, gestures: gestures, doubleTapInterval: doubleTapInterval)
+                state.anchored = anchored
+                switch progress {
+                case .preparing:
+                    if let candidate = state.candidate,
+                       (candidate.contacts.count == 1 && frame.timestamp - candidate.startedAt > configuration.onsetWindow + epsilon)
+                        || frame.timestamp - candidate.startedAt > configuration.maximumDuration + epsilon {
+                        // Late or long anchor setup cannot become an ordinary tap.
+                        for contact in active {
+                            if let tracked = candidate.contacts[contact.id] {
+                                let distance = contact.position.distance(to: tracked.origin)
+                                if distance > configuration.maximumMovement + epsilon {
+                                    return reject(.movementExceeded(contactID: contact.id, distance: distance), frame, &state, activeCount: active.count)
+                                }
+                            }
+                        }
+                        anchored.excludeOrdinaryTaps()
+                        state.anchored = anchored
+                    }
+                    if anchored.ownsInput {
+                        state.candidate = nil
+                        state.pending = nil
+                        devices[frame.deviceID] = state
+                        return outcome(state, timestamp: frame.timestamp, diagnostics: [])
+                    }
+                case .ready:
+                    if state.candidate == nil || frame.timestamp - state.candidate!.startedAt > configuration.maximumDuration + epsilon {
+                        anchored.excludeOrdinaryTaps()
+                        state.anchored = anchored
+                        state.candidate = nil
+                        state.pending = nil
+                        devices[frame.deviceID] = state
+                        return outcome(state, timestamp: frame.timestamp, diagnostics: [])
+                    }
+                case .abandoned: state.anchored = nil
+                case .rejected(let reason): return reject(reason, frame, &state, activeCount: active.count)
+                case .claimed(let gesture, let diagnostics):
+                    state.candidate = nil
+                    state.pending = nil
+                    if gesture != nil || !deferred.isEmpty { state.cooldownUntil = frame.timestamp + configuration.cooldown }
+                    devices[frame.deviceID] = state
+                    return outcome(state, timestamp: frame.timestamp, diagnostics: diagnostics,
+                                   recognized: deferred + (gesture.map { [$0] } ?? []))
+                }
+            }
         }
 
         if let pending = state.pending, state.candidate == nil,
@@ -138,10 +206,13 @@ public struct ConfigurableGestureRecognizer: Sendable {
             return reject(.tooManyContacts, frame, &state, activeCount: active.count)
         }
         let duration = frame.timestamp - candidate.startedAt
-        if duration > configuration.maximumDuration + epsilon {
+        let waitingForSecondAnchor = anchorsEnabled && candidate.contacts.count <= 1 && active.count == 1
+        let longPressEligible = gestures.contains(.threeFingerLongPress) && candidate.contacts.count == 3
+        let maximumDuration = longPressEligible ? 2.0 : configuration.maximumDuration
+        if duration > maximumDuration + epsilon, !waitingForSecondAnchor {
             return reject(.durationExceeded, frame, &state, activeCount: active.count)
         }
-        if let previousTimestamp, (2...3).contains(candidate.previousActiveCount) {
+        if let previousTimestamp, (2...4).contains(candidate.previousActiveCount) {
             candidate.overlap[candidate.previousActiveCount, default: 0] += frame.timestamp - previousTimestamp
         }
         for contact in frame.contacts {
@@ -176,16 +247,21 @@ public struct ConfigurableGestureRecognizer: Sendable {
         for id in candidate.contacts.keys where !activeIDs.contains(id) {
             if candidate.contacts[id]?.missingSince == nil { candidate.contacts[id]?.missingSince = frame.timestamp }
         }
-        if (2...3).contains(active.count) {
+        if (2...4).contains(active.count) {
             candidate.confirmedCount = max(candidate.confirmedCount, active.count)
             if active.count == 3, candidate.previousActiveCount != 3 {
                 diagnostics.append(.threeFingerGroupConfirmed)
             }
         }
-        let eligibleCount = candidate.confirmedCount == 3
-            ? (gestures.contains(.threeFingerTap) || gestures.contains(.threeFingerDoubleTap))
-            : (candidate.confirmedCount == 2 && gestures.contains(.twoFingerDoubleTap))
-        if !eligibleCount, !active.isEmpty, duration > configuration.onsetWindow + epsilon {
+        let corner = Self.cornerGesture(for: candidate.contacts.values.map(\.origin))
+        let eligibleCount: Bool
+        switch candidate.confirmedCount {
+        case 4: eligibleCount = gestures.contains(.fourFingerTap)
+        case 3: eligibleCount = !gestures.isDisjoint(with: [.threeFingerTap, .threeFingerDoubleTap, .threeFingerLongPress])
+        case 2: eligibleCount = gestures.contains(.twoFingerDoubleTap) || state.anchored != nil || corner.map { gestures.contains($0) } == true
+        default: eligibleCount = false
+        }
+        if !eligibleCount, !active.isEmpty, duration > configuration.onsetWindow + epsilon, !waitingForSecondAnchor {
             return reject(.onsetWindowExceeded, frame, &state, activeCount: active.count)
         }
         candidate.previousActiveCount = active.count
@@ -209,6 +285,20 @@ public struct ConfigurableGestureRecognizer: Sendable {
             x: candidate.contacts.values.reduce(0) { $0 + $1.origin.x } / Double(fingerCount),
             y: candidate.contacts.values.reduce(0) { $0 + $1.origin.y } / Double(fingerCount)
         )
+        let directGesture: GestureKind?
+        if fingerCount == 4 { directGesture = .fourFingerTap }
+        else if fingerCount == 3 && candidate.overlap[3, default: 0] + epsilon >= 0.5 && longPressEligible { directGesture = .threeFingerLongPress }
+        else if fingerCount == 2, let corner, gestures.contains(corner) { directGesture = corner }
+        else { directGesture = nil }
+        if let directGesture {
+            state.pending = nil
+            state.cooldownUntil = frame.timestamp + configuration.cooldown
+            devices[frame.deviceID] = state
+            return outcome(state, timestamp: frame.timestamp, diagnostics: diagnostics, recognized: [directGesture])
+        }
+        guard duration <= configuration.maximumDuration + epsilon else {
+            return reject(.durationExceeded, frame, &state, activeCount: 0)
+        }
         let doubleGesture: GestureKind = fingerCount == 2 ? .twoFingerDoubleTap : .threeFingerDoubleTap
         var recognized: [GestureKind] = []
         if gestures.contains(doubleGesture), let pending = state.pending,
@@ -249,8 +339,26 @@ public struct ConfigurableGestureRecognizer: Sendable {
                 .frameRejected(.timestampWentBackward(previous: previous, current: timestamp)),
             ])
         }
+        if let startedAt = state.anchored?.tapStartedAt,
+           timestamp + epsilon >= startedAt + configuration.maximumDuration {
+            cancel(&state, activeCount: state.lastActiveCount)
+            devices[deviceID] = state
+            return outcome(state, timestamp: timestamp, diagnostics: [.gestureRejected(.durationExceeded)])
+        }
+        if var anchored = state.anchored {
+            let gesture = anchored.flush(timestamp: timestamp, interval: doubleTapInterval, cooldown: configuration.cooldown, gestures: gestures)
+            state.anchored = anchored
+            if !gesture.isEmpty { state.cooldownUntil = timestamp + configuration.cooldown }
+            devices[deviceID] = state
+            return outcome(state, timestamp: timestamp, diagnostics: [], recognized: gesture)
+        }
         if let candidate = state.candidate {
-            if timestamp + epsilon >= candidate.startedAt + configuration.maximumDuration {
+            if candidate.contacts.count == 1,
+               !gestures.isDisjoint(with: AnchoredTapSession.gestures) {
+                return outcome(state, timestamp: timestamp, diagnostics: [])
+            }
+            let limit = candidate.contacts.count == 3 && gestures.contains(.threeFingerLongPress) ? 2.0 : configuration.maximumDuration
+            if timestamp + epsilon >= candidate.startedAt + limit {
                 cancel(&state, activeCount: state.lastActiveCount)
                 devices[deviceID] = state
                 return outcome(state, timestamp: timestamp, diagnostics: [.gestureRejected(.durationExceeded)])
@@ -287,6 +395,16 @@ public struct ConfigurableGestureRecognizer: Sendable {
         return []
     }
 
+    // Sensor coordinates increase upwards. Require both fingers in the same 25% square.
+    private static func cornerGesture(for points: [TouchPoint]) -> GestureKind? {
+        guard points.count == 2 else { return nil }
+        if points.allSatisfy({ $0.x <= 0.25 && $0.y >= 0.75 }) { return .topLeftTwoFingerTap }
+        if points.allSatisfy({ $0.x >= 0.75 && $0.y >= 0.75 }) { return .topRightTwoFingerTap }
+        if points.allSatisfy({ $0.x <= 0.25 && $0.y <= 0.25 }) { return .bottomLeftTwoFingerTap }
+        if points.allSatisfy({ $0.x >= 0.75 && $0.y <= 0.25 }) { return .bottomRightTwoFingerTap }
+        return nil
+    }
+
     private func validate(_ frame: TouchFrame) -> [FrameValidationError] {
         var errors: [FrameValidationError] = []
         if frame.deviceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { errors.append(.emptyDeviceID) }
@@ -304,9 +422,11 @@ public struct ConfigurableGestureRecognizer: Sendable {
     }
 
     private func cancel(_ state: inout ConfigurableDeviceState, activeCount: Int, forceBlock: Bool = false) {
+        let anchoredCooldown = state.anchored?.isEngaged == true ? state.cooldownUntil : nil
         state.candidate = nil
+        state.anchored = nil
         state.pending = nil
-        state.cooldownUntil = nil
+        state.cooldownUntil = anchoredCooldown
         state.burstSuppressionUntil = nil
         state.blocked = forceBlock || activeCount > 0
     }
@@ -325,6 +445,8 @@ public struct ConfigurableGestureRecognizer: Sendable {
     ) -> GestureRecognitionOutcome {
         let phase: RecognitionPhase
         if state.blocked { phase = .blockedUntilRelease }
+        else if state.anchored?.isReady == true { phase = .tracking }
+        else if state.anchored != nil { phase = .collecting }
         else if let candidate = state.candidate { phase = candidate.confirmedCount >= 2 ? .tracking : .collecting }
         else if let until = state.suppressionUntil, timestamp < until { phase = .cooldown }
         else { phase = .idle }
@@ -348,6 +470,7 @@ private struct ConfigurableDeviceState: Sendable {
     var lastSequence: UInt64?
     var lastActiveCount = 0
     var candidate: ConfigurableTapCandidate?
+    var anchored: AnchoredTapSession?
     var pending: PendingConfigurableTap?
     var blocked = false
     var cooldownUntil: Double?

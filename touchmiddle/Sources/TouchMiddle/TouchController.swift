@@ -120,8 +120,19 @@ final class TouchController: ObservableObject {
               app.bundleIdentifier != nil else { return nil }
         return app
     }
+    private var heldModifiers: ShortcutModifiers {
+        Self.modifiers(from: CGEventSource.flagsState(.hidSystemState))
+    }
+    nonisolated static func modifiers(from flags: CGEventFlags) -> ShortcutModifiers {
+        var value: ShortcutModifiers = []
+        if flags.contains(.maskCommand) { value.insert(.command) }
+        if flags.contains(.maskAlternate) { value.insert(.option) }
+        if flags.contains(.maskControl) { value.insert(.control) }
+        if flags.contains(.maskShift) { value.insert(.shift) }
+        return value
+    }
     private func synchronizeContext(_ app: NSRunningApplication?) -> String {
-        let key = app.map { "\($0.bundleIdentifier ?? "unknown"):\($0.processIdentifier)" } ?? "unknown"
+        let key = (app.map { "\($0.bundleIdentifier ?? "unknown"):\($0.processIdentifier)" } ?? "unknown") + ":modifiers:\(heldModifiers.rawValue)"
         updateForegroundName(app)
         if contextID != key { contextID = key; resetRecognition(preserveArming: contacts == 0, cancelManual: false) }
         return key
@@ -190,16 +201,17 @@ final class TouchController: ObservableObject {
             contacts: frame.contacts.map { RawTouchContact(id: $0.id, state: $0.state, position: TouchPoint(x: $0.x, y: $0.y)) }) else {
             phase = adapter.isArmed(deviceID: device) ? "校準完成，等待點按" : "等待所有手指放開"; return
         }
-        let gestures = RuleConfiguration(rules: rules).gestures(bundleIdentifier: foreground?.bundleIdentifier)
+        let gestures = RuleConfiguration(rules: rules).gestures(bundleIdentifier: foreground?.bundleIdentifier, modifiers: heldModifiers)
         let result = recognizer.process(mapped, contextID: currentContext, gestures: gestures)
         handleRecognition(result, deviceTimestamp: frame.timestamp, app: foreground)
     }
     private func flushPendingSingles() {
+        if !shuttingDown { _ = synchronizeContext(foregroundTarget()) }
         guard delivery != nil, !shuttingDown, !sleeping, !isEditingRule,
               clocks.keys.contains(where: { recognizer.pendingDeadline(deviceID: $0) != nil }) else { return }
         let app = foregroundTarget(); let key = synchronizeContext(app)
         guard app != nil else { return }
-        let gestures = RuleConfiguration(rules: rules).gestures(bundleIdentifier: app?.bundleIdentifier)
+        let gestures = RuleConfiguration(rules: rules).gestures(bundleIdentifier: app?.bundleIdentifier, modifiers: heldModifiers)
         let now = DispatchTime.now().uptimeNanoseconds
         for (device, clock) in clocks where recognizer.pendingDeadline(deviceID: device) != nil {
             let timestamp = clock.timestamp + Double(now - clock.receivedUptime) / 1_000_000_000
@@ -222,7 +234,7 @@ final class TouchController: ObservableObject {
             record(["type": "recognized", "gesture": recognized, "gestureKind": gesture.rawValue,
                     "deviceTimestamp": deviceTimestamp, "foreground": app?.bundleIdentifier ?? "unknown", "enabled": enabled])
             guard enabled, let app,
-                  let rule = RuleConfiguration(rules: rules).resolve(gesture, bundleIdentifier: app.bundleIdentifier) else { continue }
+                  let rule = RuleConfiguration(rules: rules).resolve(gesture, bundleIdentifier: app.bundleIdentifier, modifiers: heldModifiers) else { continue }
             postAction(rule.action, app: app, kind: "gesture", gesture: recognized, rule: rule)
         }
     }
@@ -324,6 +336,15 @@ final class TouchController: ObservableObject {
     }
     private func installMonitors() {
         let observe: @Sendable (NSEvent) -> Void = { [weak self] event in
+            if event.type == .flagsChanged {
+                DispatchQueue.main.async {
+                    guard let self, !self.shuttingDown else { return }
+                    _ = self.synchronizeContext(self.foregroundTarget())
+                    self.resetRecognition(preserveArming: self.contacts == 0, cancelManual: false)
+                    self.phase = "組合鍵已改變，等待手指放開"
+                }
+                return
+            }
             guard let cg = event.cgEvent else { return }
             let marker = cg.getIntegerValueField(.eventSourceUserData)
             let isMiddle = marker & MiddleClickOutput.markerMask == MiddleClickOutput.markerPrefix && event.buttonNumber == 2
@@ -332,7 +353,7 @@ final class TouchController: ObservableObject {
             let type = (event.type == .otherMouseDown || event.type == .keyDown) ? "down" : "up"
             DispatchQueue.main.async { self?.receiveReceipt(marker: marker, type: type) }
         }
-        let mask: NSEvent.EventTypeMask = [.otherMouseDown, .otherMouseUp, .keyDown, .keyUp]
+        let mask: NSEvent.EventTypeMask = [.otherMouseDown, .otherMouseUp, .keyDown, .keyUp, .flagsChanged]
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: observe)
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { event in observe(event); return event }
     }

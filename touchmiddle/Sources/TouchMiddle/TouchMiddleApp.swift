@@ -155,6 +155,8 @@ struct Dashboard: View {
                         .font(.caption).foregroundStyle(.secondary)
                     Text("雙擊是連續兩次輕點，每次完全放開；不需要按下觸控板。")
                         .font(.caption).foregroundStyle(.secondary)
+                    Text("進階手勢：先固定兩指至少 150 ms，再用第三指於兩指左側或右側外緣輕點並放開。兩指保持接觸時可重複點擊；左右以固定兩指的位置判定。")
+                        .font(.caption).foregroundStyle(.secondary)
                 }.padding(8)
             }
             if let ruleError { Text(ruleError).font(.callout).foregroundStyle(.red).textSelection(.enabled) }
@@ -227,6 +229,8 @@ struct Dashboard: View {
                     Slider(value: $controller.movement, in: 0.01...0.05, step: 0.001)
                     settingLine("單次輕點最長時間", value: "\(Int(controller.duration * 1000)) ms")
                     Slider(value: $controller.duration, in: 0.15...0.4, step: 0.01)
+                    Text("進階手勢使用相同位移限制；單次最長時間只計第三指輕點，固定兩指的等待時間另計。")
+                        .font(.caption).foregroundStyle(.secondary)
                     settingLine("雙擊兩次輕點的最長間隔", value: "\(Int(controller.doubleTapInterval * 1000)) ms")
                     Slider(value: $controller.doubleTapInterval, in: 0.15...0.6, step: 0.01)
                     Button("套用點按設定") { controller.applyConfiguration() }
@@ -285,13 +289,13 @@ struct Dashboard: View {
 
     private func ruleRow(_ rule: GestureRule) -> some View {
         HStack(spacing: 12) {
-            Toggle("啟用 \(rule.scope.title) 的 \(rule.gesture.title)", isOn: Binding(get: { rule.isEnabled }, set: { value in
+            Toggle("啟用 \(rule.scope.title) 的 \(rule.triggerTitle)", isOn: Binding(get: { rule.isEnabled }, set: { value in
                 do { try controller.setRuleEnabled(id: rule.id, enabled: value); ruleError = nil }
                 catch { ruleError = error.localizedDescription }
             }))
             .labelsHidden().toggleStyle(.switch)
             VStack(alignment: .leading, spacing: 3) {
-                Text(rule.gesture.title).font(.body.weight(.medium))
+                Text(rule.triggerTitle).font(.body.weight(.medium))
                 Label(rule.scope.title, systemImage: rule.scope.bundleIdentifier == nil ? "globe" : "app")
                     .font(.caption).foregroundStyle(.secondary)
                     .help(rule.scope.bundleIdentifier ?? "所有 App")
@@ -305,7 +309,7 @@ struct Dashboard: View {
                 catch { ruleError = error.localizedDescription }
             } label: { Image(systemName: "trash") }
                 .help("刪除此規則")
-                .accessibilityLabel("刪除 \(rule.scope.title) 的 \(rule.gesture.title)")
+                .accessibilityLabel("刪除 \(rule.scope.title) 的 \(rule.triggerTitle)")
         }
         .buttonStyle(.borderless)
         .padding(.vertical, 5)
@@ -321,6 +325,7 @@ private struct RuleEditor: View {
     @Environment(\.dismiss) private var dismiss
     private let ruleID: UUID
     private let isNew: Bool
+    @State private var requiredModifiers: ShortcutModifiers
     @State private var gesture: GestureKind
     @State private var scopeChoice: ScopeChoice
     @State private var applicationScope: RuleScope?
@@ -334,6 +339,7 @@ private struct RuleEditor: View {
         self.controller = controller
         ruleID = rule?.id ?? UUID()
         isNew = rule == nil
+        _requiredModifiers = State(initialValue: rule?.requiredModifiers ?? [])
         _gesture = State(initialValue: rule?.gesture ?? .twoFingerDoubleTap)
         _scopeChoice = State(initialValue: rule?.scope.bundleIdentifier == nil ? .global : .application)
         _applicationScope = State(initialValue: rule?.scope.bundleIdentifier == nil ? nil : rule?.scope)
@@ -356,6 +362,16 @@ private struct RuleEditor: View {
                 Picker("手勢", selection: $gesture) {
                     ForEach(GestureKind.allCases) { Text($0.title).tag($0) }
                 }
+                Text(gesture.instructions).font(.caption).foregroundStyle(.secondary)
+                HStack {
+                    Text("需按住的按鍵")
+                    modifierToggle("⌘", .command)
+                    modifierToggle("⌥", .option)
+                    modifierToggle("⌃", .control)
+                    modifierToggle("⇧", .shift)
+                }
+                Text("未勾選表示不按組合鍵。手勢開始前先按住，直到手勢完成；途中改變按鍵會取消。同一手勢可依按鍵建立不同規則。")
+                    .font(.caption).foregroundStyle(.secondary)
                 Picker("套用範圍", selection: $scopeChoice) {
                     Text("全域（所有 App）").tag(ScopeChoice.global)
                     Text("指定 App").tag(ScopeChoice.application)
@@ -411,6 +427,13 @@ private struct RuleEditor: View {
         .onChange(of: scopeChoice) { _, _ in isRecording = false }
     }
 
+    private func modifierToggle(_ title: String, _ modifier: ShortcutModifiers) -> some View {
+        Toggle(title, isOn: Binding(
+            get: { requiredModifiers.contains(modifier) },
+            set: { if $0 { requiredModifiers.insert(modifier) } else { requiredModifiers.remove(modifier) } }
+        )).toggleStyle(.button)
+    }
+
     private func selectApplication() {
         let panel = NSOpenPanel()
         panel.title = "選擇套用規則的 App"
@@ -444,7 +467,7 @@ private struct RuleEditor: View {
         else if let shortcut { action = .shortcut(shortcut) }
         else { error = "請先錄製要觸發的快捷鍵。"; return }
         do {
-            try controller.saveRule(GestureRule(id: ruleID, gesture: gesture, scope: scope, action: action, isEnabled: enabled))
+            try controller.saveRule(GestureRule(id: ruleID, gesture: gesture, scope: scope, action: action, isEnabled: enabled, requiredModifiers: requiredModifiers))
             isRecording = false
             dismiss()
         } catch { self.error = error.localizedDescription }
