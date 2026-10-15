@@ -2,17 +2,19 @@
 
 macOS 原生觸控板手勢與快捷鍵工具。目前原始碼支援兩指／三指雙擊、兩指固定後的左側／右側點擊、快捷鍵錄製，以及全域與 App 專屬規則；保留三指輕點中鍵功能。
 
-兩指固定手勢：先讓兩指保持接觸且固定至少 150 ms，再用第三指於兩指左側或右側外緣輕點，放開第三指即可觸發。固定兩指時可重複點擊。左右以兩指的位置判定，不是觸控板左右半邊；觸發動作仍由規則指定。此功能尚未包含在公開 `0.3.0-beta.1` 安裝包，新增手勢的真人觸控板驗收尚未完成。自動測試與待驗項目見[新增手勢驗證紀錄](docs/ANCHORED-GESTURES-VERIFICATION.md)。
+兩指固定手勢：先讓兩指保持接觸且固定至少 150 ms，再用第三指於兩指左側或右側外緣輕點，放開第三指即可觸發。固定兩指時可重複點擊。左右以兩指的位置判定，不是觸控板左右半邊；觸發動作仍由規則指定。此功能已納入 `0.4.0-beta.1` 安裝包，新增手勢的真人觸控板驗收尚未完成。自動測試與待驗項目見[新增手勢驗證紀錄](docs/ANCHORED-GESTURES-VERIFICATION.md)。
 
-原始碼另已加入 12 種尚未發布的手勢（合計 17 種），以及 ⌘／⌥／⌃／⇧ 作為手勢觸發條件。可在新增／編輯規則時勾選「需按住的按鍵」。操作、優先順序、規則格式相容性與待驗項目見[擴充手勢驗證紀錄](docs/EXPANDED-GESTURES-VERIFICATION.md)。新增手勢尚未完成真人觸控板驗收，不包含在上述公開測試包。
+`0.4.0-beta.1` 另加入 12 種擴充手勢（合計 17 種），以及 ⌘／⌥／⌃／⇧ 作為手勢觸發條件。可在新增／編輯規則時勾選「需按住的按鍵」。操作、優先順序、規則格式相容性與待驗項目見[擴充手勢驗證紀錄](docs/EXPANDED-GESTURES-VERIFICATION.md)。新增手勢尚未完成真人觸控板驗收；本版儲存的 version 2 規則無法由舊版 App 讀取，降版時須一併還原規則備份。
+
+`0.4.0-beta.1` 加入 GitHub 更新檢查：App 執行期間每 24 小時自動檢查一次，支援正式版與測試版；也可從選單列「檢查更新…」或「狀態與設定 → 軟體更新」手動檢查。有新版時顯示更新內容，可按「開啟下載頁」前往 GitHub，再手動替換 App。此功能不需要 GitHub 登入或外部 Swift 套件。行為、版本識別與驗證範圍見[更新檢查說明](docs/UPDATE-CHECKING.md)。
 
 作者：[ilovetai1](https://github.com/ilovetai1)。採用 [MIT 授權](LICENSE)，允許所有人使用、修改、散布與商業使用；散布時須保留版權與授權文字。軟體按現況提供，不附保固。
 
 ## 安裝測試版
 
-公開測試版：**0.3.0-beta.1**，App 版本為 0.3.0（build 5）。此版本仍有未完成的驗收項目，詳見下方限制。
+公開測試版：**0.4.0-beta.1**，App 版本為 0.4.0（build 6）。此版本仍有未完成的驗收項目，詳見下方限制。
 
-可到 [GitHub Releases](https://github.com/ilovetai1/TouchMiddle/releases/tag/v0.3.0-beta.1) 下載 `TouchMiddle-0.3.0-beta.1-macos-arm64.zip`。安裝包適用 Apple Silicon Mac，不需要 Xcode。「Source code」ZIP 是原始碼，不是可直接開啟的 App。
+可到 [GitHub Releases](https://github.com/ilovetai1/TouchMiddle/releases/tag/v0.4.0-beta.1) 下載 `TouchMiddle-0.4.0-beta.1-macos-arm64.zip`。安裝包適用 Apple Silicon Mac，不需要 Xcode。「Source code」ZIP 是原始碼，不是可直接開啟的 App。
 
 1. 解壓縮，將 `TouchMiddle.app` 放入 `/Applications` 或 `~/Applications`。
 2. 開啟 App。若 macOS 因無法驗證開發者而阻擋，確認來源可信後，依[安裝說明](docs/INSTALL.md)在「隱私權與安全性」手動允許。
@@ -22,7 +24,7 @@ macOS 原生觸控板手勢與快捷鍵工具。目前原始碼支援兩指／�
 
 **權限開關已開，App 仍顯示未取得權限？** 更新或重新建置後，系統可能仍保留舊簽章的授權。請先結束 TouchMiddle，在「輔助使用」移除舊項目，加入目前安裝位置的新版 App，再重新啟動。詳見[簽章狀態與處理步驟](docs/SIGNING.md)，其中也說明本機自簽與 Apple 公證的差別。
 
-[完整安裝、更新與移除說明](docs/INSTALL.md) · [手勢操作說明](touchmiddle/README.txt) · [測試版說明](docs/RELEASE-0.3.0-beta.1.md) · [0.2.0 歷史驗收](docs/VERIFICATION.md)
+[完整安裝、更新與移除說明](docs/INSTALL.md) · [手勢操作說明](touchmiddle/README.txt) · [測試版說明](docs/RELEASE-0.4.0-beta.1.md) · [0.2.0 歷史驗收](docs/VERIFICATION.md)
 
 ## 限制
 
@@ -31,7 +33,7 @@ macOS 原生觸控板手勢與快捷鍵工具。目前原始碼支援兩指／�
 - 使用 MultitouchSupport 私有 framework，macOS 升級後需重新驗證。
 - 可能漏判或誤觸；不攔截 macOS 原生手勢，兩者可能同時觸發。不保證所有第三方 App 執行對應快捷鍵。
 - 真實 sleep/wake、長時間壓力、任意掌心接觸與登入自動啟動的重新登入驗收尚未完成。
-- 未加入上傳或自動更新服務，使用者自行從 Releases 更新。
+- 不上傳規則或診斷。App 透過 GitHub 查詢版本，下載與替換 App 仍由使用者操作。
 
 ## 開發過程
 
@@ -43,7 +45,7 @@ TouchMiddle 起於我對市面上觸控板控制工具的逆向研究。我透�
 2. **收斂成可驗證的 MVP。** 從「三指輕點 → 游標位置中鍵」開始，先用唯讀探測確認內建觸控板可接收全域接觸資料，再加入動作輸出。BTT 樣本中的 MultitouchSupport 使用線索，以及公開的觸控介面資料，都用來協助查核；私有資料結構仍須以本機探測確認。
 3. **實作 TouchMiddle 的辨識與介面。** 以 Swift／SwiftUI 建立選單列 App，使用 C bridge 接收觸控資料，在本專案中實作點按條件、手勢狀態、校準、取消與冷卻邏輯，並透過 macOS 事件 API 輸出中鍵及快捷鍵。相關實作見 [CTouchBridge](touchmiddle/Sources/CTouchBridge/CTouchBridge.c) 與 [TouchMiddleCore](touchmiddle/Sources/TouchMiddleCore)。
 4. **擴充成可編輯的手勢規則。** 加入兩指／三指雙擊、快捷鍵錄製、本機規則儲存，以及全域與指定 App 的對應。指定 App 的已啟用規則優先；切換 App 時取消尚未完成的手勢，避免把動作送到錯誤目標。
-5. **以測試與實際接收結果驗證。** 除自動測試外，使用獨立接收端核對事件的按下／放開、鍵碼、修飾鍵與目標 App，並由真人操作觸控板測試點按、滑動與捲動。0.2.0 的分段測試通過，但首輪漏判及額外事件原因仍為 `unclear`，保留於[驗收摘要](docs/VERIFICATION.md)。目前公開測試版另有 73 項 Swift 測試與 8 項版本工具測試通過，見[測試包驗證](docs/BETA-VERIFICATION.md)。
+5. **以測試與實際接收結果驗證。** 除自動測試外，使用獨立接收端核對事件的按下／放開、鍵碼、修飾鍵與目標 App，並由真人操作觸控板測試點按、滑動與捲動。0.2.0 的分段測試通過，但首輪漏判及額外事件原因仍為 `unclear`，保留於[驗收摘要](docs/VERIFICATION.md)。新測試包的驗證與限制見[0.4.0-beta.1 驗證](docs/BETA-VERIFICATION-0.4.0-beta.1.md)。
 6. **整理成可分享的開源測試版。** 加入登入自動啟動設定、作者與授權資訊、版本管理、安裝及簽章處理說明，以 MIT 授權公開原始碼，並透過 GitHub Releases 提供 Apple Silicon 測試包。本機自用可使用固定自簽憑證；公開測試包使用 ad-hoc，未做 Apple Developer ID 簽章或公證。
 
 逆向研究的結論有明確範圍：BTT 主程式的 Ghidra 全檔分析曾在 20 分鐘期限後逾時，沒有產生完整主程式偽碼或 call graph；所查的靜態路徑也沒有完成 BTT 的執行時驗證。因此，不能將本專案描述為完整還原 BTT，或宣稱兩者使用相同的手勢演算法。
@@ -68,16 +70,16 @@ bash touchmiddle/Tools/build-app.sh --output "$HOME/Applications/TouchMiddle.app
 測試版打包指令：
 
 ```bash
-bash touchmiddle/Tools/package-beta.sh --output "$PWD/outputs/TouchMiddle-0.3.0-beta.1-macos-arm64"
+bash touchmiddle/Tools/package-beta-0.4.0.sh --output "$PWD/outputs/TouchMiddle-0.4.0-beta.1-macos-arm64"
 ```
 
 輸出目錄必須尚未存在；腳本只在本機建置、打包及產生 SHA-256，不會 push、公開倉庫或發布 Releases。
 
 ## 版本管理
 
-目前原始碼版本：`0.3.0`；build：`5`。
+目前原始碼版本：`0.4.0`；build：`6`。
 
-此原始碼與本機建置可在「狀態與設定 → 選單列圖示」切換圖示顯示，並記住選擇。隱藏圖示不會暫停手勢；再次開啟 TouchMiddle App 可回到設定並恢復圖示。公開 `0.3.0-beta.1` 安裝包包含此設定。
+可在「狀態與設定 → 選單列圖示」切換圖示顯示，並記住選擇。隱藏圖示不會暫停手勢；再次開啟 TouchMiddle App 可回到設定並恢復圖示。從 `0.3.0-beta.1` 起的安裝包包含此設定。
 
 採用 major／minor／patch 三段式版本規則，以 `touchmiddle/Tools/Info.plist` 為唯一來源。工具同步當期文件與 [CHANGELOG](CHANGELOG.md)，不自動 commit、tag 或 push。既有 beta 發布說明與歷史驗收保留原版號；新版本的發布包須另外準備。
 

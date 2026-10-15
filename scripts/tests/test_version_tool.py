@@ -97,6 +97,22 @@ class VersionToolTests(unittest.TestCase):
             data[key] = value
             target.write_bytes(plistlib.dumps(data))
             self.assertNotEqual(self.run_cli("check_version_consistency.sh", "--app", str(app)).returncode, 0)
+        data = self.original.copy()
+        data["TMPrereleaseIdentifier"] = "beta.999"
+        target.write_bytes(plistlib.dumps(data))
+        self.assertNotEqual(self.run_cli("check_version_consistency.sh", "--app", str(app)).returncode, 0)
+
+    def test_prerelease_identifier_is_validated(self):
+        for value in ("", "beta.01", "beta..1", "beta.1+build", 1):
+            data = self.original.copy()
+            data["TMPrereleaseIdentifier"] = value
+            self.plist.write_bytes(plistlib.dumps(data))
+            self.assertNotEqual(self.run_cli("check_version_consistency.sh").returncode, 0)
+        for value in ("beta.1", "beta.10", "rc.1", "0", "1a"):
+            data = self.original.copy()
+            data["TMPrereleaseIdentifier"] = value
+            self.plist.write_bytes(plistlib.dumps(data))
+            self.assertEqual(self.run_cli("check_version_consistency.sh").returncode, 0)
 
     def test_invalid_arguments_do_not_write(self):
         before = self.snapshot()

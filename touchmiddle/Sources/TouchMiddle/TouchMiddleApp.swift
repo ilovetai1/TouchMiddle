@@ -19,7 +19,9 @@ struct TouchMiddleApp {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let controller = TouchController()
+    let updateChecker = UpdateChecker()
     private var window: NSWindow?
+    private var updateWindow: NSWindow?
     private var statusItem: NSStatusItem?
     private var defaultsObserver: NSObjectProtocol?
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -30,9 +32,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             Task { @MainActor in self?.updateMenuBarIcon() }
         }
         showWindow()
+        updateChecker.onUpdateAvailable = { [weak self] in self?.showUpdateWindow() }
+        updateChecker.start()
     }
     func applicationWillTerminate(_ notification: Notification) {
         if let defaultsObserver { NotificationCenter.default.removeObserver(defaultsObserver) }
+        updateChecker.stop()
         controller.shutdown()
     }
     private func updateMenuBarIcon() {
@@ -48,6 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             for (title, action) in [
                 ("啟用手勢", #selector(toggleGestures)),
                 ("開啟手勢與設定", #selector(openSettings)),
+                ("檢查更新…", #selector(checkForUpdates)),
                 ("結束 TouchMiddle", #selector(quit))
             ] {
                 if action == #selector(quit) { menu.addItem(.separator()) }
@@ -67,6 +73,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     @objc private func toggleGestures() { controller.setEnabled(!controller.enabled) }
     @objc private func openSettings() { showWindow() }
+    @objc private func checkForUpdates() {
+        showUpdateWindow()
+        Task { await updateChecker.check() }
+    }
     @objc private func quit() { NSApp.terminate(nil) }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -80,10 +90,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             w.title = "TouchMiddle"
             w.minSize = NSSize(width: 760, height: 640)
             w.isReleasedWhenClosed = false
-            w.contentView = NSHostingView(rootView: Dashboard(controller: controller))
+            w.contentView = NSHostingView(rootView: Dashboard(controller: controller, updateChecker: updateChecker))
             w.center(); window = w
         }
         window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func showUpdateWindow() {
+        if updateWindow == nil {
+            let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 540),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
+            w.title = "TouchMiddle 更新"
+            w.minSize = NSSize(width: 540, height: 480)
+            w.isReleasedWhenClosed = false
+            w.contentView = NSHostingView(rootView: ScrollView { UpdateView(checker: updateChecker).padding(20) })
+            w.center()
+            updateWindow = w
+        }
+        updateWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 }
@@ -95,6 +120,7 @@ private struct RuleEditorItem: Identifiable {
 
 struct Dashboard: View {
     @ObservedObject var controller: TouchController
+    @ObservedObject var updateChecker: UpdateChecker
     @AppStorage("showMenuBarIcon") private var showMenuBarIcon = true
     @StateObject private var loginItem = LoginItemSettings()
     @State private var editor: RuleEditorItem?
@@ -170,6 +196,9 @@ struct Dashboard: View {
 
     private var settingsPage: some View {
         VStack(alignment: .leading, spacing: 16) {
+            GroupBox("軟體更新") {
+                UpdateView(checker: updateChecker).padding(6)
+            }
             GroupBox("選單列圖示") {
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle("在選單列顯示 TouchMiddle 圖示", isOn: $showMenuBarIcon)

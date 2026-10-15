@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parent.parent
 PLIST = Path("touchmiddle/Tools/Info.plist")
 VERSION = r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
+PRERELEASE_IDENTIFIER = r"(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)"
 MARKERS = {
     Path("README.md"): rf"(?m)^目前原始碼版本：`({VERSION})`；build：`([1-9][0-9]*)`。$",
     Path("touchmiddle/README.txt"): rf"\ATouchMiddle ({VERSION}) —",
@@ -28,11 +29,16 @@ def source(root):
         raise ValueError("Info.plist App 版本必須為無前導零的 X.Y.Z")
     if not isinstance(build, str) or not re.fullmatch(r"[1-9][0-9]*", build):
         raise ValueError("Info.plist build 必須為正整數字串")
+    if "TMPrereleaseIdentifier" in data:
+        identifier = data["TMPrereleaseIdentifier"]
+        if not isinstance(identifier, str) or not re.fullmatch(
+                rf"{PRERELEASE_IDENTIFIER}(?:\.{PRERELEASE_IDENTIFIER})*", identifier):
+            raise ValueError("Info.plist 測試版識別必須為有效的 SemVer prerelease，例如 beta.1")
     return data, version, build
 
 
 def check(root, app=None):
-    _, version, build = source(root)
+    metadata, version, build = source(root)
     texts = {}
     for path, pattern in MARKERS.items():
         text = (root / path).read_text(encoding="utf-8")
@@ -55,6 +61,8 @@ def check(root, app=None):
         for key, expected in (("CFBundleShortVersionString", version), ("CFBundleVersion", build)):
             if bundle.get(key) != expected:
                 raise ValueError(f"App bundle {key}={bundle.get(key)!r} 與來源 {expected} 不一致")
+        if bundle.get("TMPrereleaseIdentifier") != metadata.get("TMPrereleaseIdentifier"):
+            raise ValueError("App bundle 測試版識別與來源不一致")
     return version, build, texts
 
 
