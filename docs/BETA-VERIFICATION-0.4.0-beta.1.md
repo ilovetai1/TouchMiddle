@@ -23,7 +23,11 @@
 
 ## 發布檢查
 
-候選包與附件已完成本機核對。公開 API、tag commit 及匿名下載雜湊在發布後另行回讀，不能由候選包驗證推定公開下載成功。
+- 已提交並推送版本來源 commit `e1481cba638223da92ac8bdea10d6f4c2af621fe`；遠端 `v0.4.0-beta.1` 為 annotated tag，解參照後對應此 commit。
+- [GitHub Release](https://github.com/ilovetai1/TouchMiddle/releases/tag/v0.4.0-beta.1) 於 2026-10-15 15:12:42（Asia/Taipei）公開。未登入的 GitHub API 回讀確認 `draft=false`、`prerelease=true`、tag 正確，並附 ZIP、SHA256SUMS.txt、INSTALL.md、SIGNING.md 四個附件。
+- 發布前已核對草稿內文、附件大小與 GitHub 提供的附件 digest。發布後以不帶登入憑證的請求重新下載四個附件，均與本機候選檔逐位元相同；ZIP SHA-256 與上方候選雜湊一致，校驗碼檔也匹配。
+- 正式 `GitHubReleaseClient` 從公開版本列表辨識到新測試版。以同一份公開資料驗證：模擬 `0.3.0-beta.1` 顯示 `0.4.0-beta.1`、完整更新內容與正確下載 URL；目前安裝版本 `0.4.0-beta.1` 顯示已是最新版。此模擬不代表舊公開包本身具備更新功能，第一次仍需手動安裝。
+- 公開 API、匿名下載及發布後版本查詢證據，保留於 `outputs/release-0.4.0-beta.1-validation/`。此文件的發布後補記另行提交，不移動已發布的版本 tag。
 
 ## 未驗證範圍
 
