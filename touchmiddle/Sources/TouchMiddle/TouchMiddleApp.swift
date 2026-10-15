@@ -388,10 +388,8 @@ private struct RuleEditor: View {
             Text("編輯期間暫停手勢輸出，儲存後重新等待手指完全放開。")
                 .font(.callout).foregroundStyle(.secondary)
             Form {
-                Picker("手勢", selection: $gesture) {
-                    ForEach(GestureKind.allCases) { Text($0.title).tag($0) }
-                }
-                Text(gesture.instructions).font(.caption).foregroundStyle(.secondary)
+                GesturePicker(selection: $gesture)
+                GestureAnimationView(gesture: gesture)
                 HStack {
                     Text("需按住的按鍵")
                     modifierToggle("⌘", .command)
