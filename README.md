@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/assets/logo.png" alt="TouchMiddle logo" width="128"></p>
+
 # TouchMiddle
 
 [繁體中文](README.zh-TW.md)
