@@ -77,7 +77,7 @@ bash touchmiddle/Tools/package-beta-0.4.0.sh --output "$PWD/outputs/TouchMiddle-
 
 ## 版本管理
 
-目前原始碼版本：`0.5.1`；build：`8`。
+目前原始碼版本：`0.5.2`；build：`9`。
 
 可在「狀態與設定 → 選單列圖示」切換圖示顯示，並記住選擇。隱藏圖示不會暫停手勢；再次開啟 TouchMiddle App 可回到設定並恢復圖示。從 `0.3.0-beta.1` 起的安裝包包含此設定。
 
