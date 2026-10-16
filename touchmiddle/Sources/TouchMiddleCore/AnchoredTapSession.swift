@@ -150,6 +150,11 @@ struct AnchoredTapSession: Sendable {
         guard let contact = others.first else { return .claimed(gesture: nil, diagnostics: []) }
         guard contact.phase.isActive else { return .rejected(.tooManyContacts) }
         let sideGesture = side(of: contact.position, active: active, margin: configuration.maximumMovement)
+        if sideGesture != nil {
+            let anchorPoints = active.filter { anchors[$0.id] != nil }.map(\.position)
+            let gap = TouchPoint.largestHorizontalGap(anchorPoints + [contact.position])
+            if gap > configuration.maximumFingerGap + epsilon { return .rejected(.fingersTooFarApart(gap: gap)) }
+        }
         let swipeEnabled = anchorCount == 2 && !gestures.isDisjoint(with: [.twoFingerHoldSwipeUp, .twoFingerHoldSwipeDown])
         guard let gesture = sideGesture ?? (swipeEnabled ? .twoFingerHoldSwipeUp : nil) else {
             return .rejected(.tapNotBesideAnchors)

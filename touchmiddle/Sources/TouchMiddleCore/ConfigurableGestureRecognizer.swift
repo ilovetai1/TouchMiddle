@@ -243,6 +243,10 @@ public struct ConfigurableGestureRecognizer: Sendable {
                 return reject(.tooManyContacts, frame, &state, activeCount: active.count)
             }
         }
+        let gap = TouchPoint.largestHorizontalGap(candidate.contacts.values.map(\.origin))
+        if gap > configuration.maximumFingerGap + epsilon {
+            return reject(.fingersTooFarApart(gap: gap), frame, &state, activeCount: active.count)
+        }
         let activeIDs = Set(active.map(\.id))
         for id in candidate.contacts.keys where !activeIDs.contains(id) {
             if candidate.contacts[id]?.missingSince == nil { candidate.contacts[id]?.missingSince = frame.timestamp }

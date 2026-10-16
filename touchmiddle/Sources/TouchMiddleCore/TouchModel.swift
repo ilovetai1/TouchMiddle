@@ -13,6 +13,12 @@ public struct TouchPoint: Sendable, Equatable {
     func distance(to other: TouchPoint) -> Double {
         hypot(x - other.x, y - other.y)
     }
+
+    /// Widest horizontal gap between neighbouring points; zero for fewer than two points.
+    static func largestHorizontalGap(_ points: [TouchPoint]) -> Double {
+        let xs = points.map(\.x).sorted()
+        return zip(xs, xs.dropFirst()).map { $1 - $0 }.max() ?? 0
+    }
 }
 
 public enum TouchPhase: Sendable, Equatable {
@@ -108,6 +114,7 @@ public enum GestureRejectionReason: Sendable, Equatable {
     case frameGapExceeded
     case anchorReleased
     case tapNotBesideAnchors
+    case fingersTooFarApart(gap: Double)
 }
 
 public enum RecognitionDiagnostic: Sendable, Equatable {

@@ -48,7 +48,7 @@ final class ExpandedGestureTests: XCTestCase {
         }
     }
     func testOneAnchorLeftAndRightReleaseAndReplacement() {
-        for (x, gesture) in [(0.2, GestureKind.oneFingerHoldLeftTap), (0.8, .oneFingerHoldRightTap)] {
+        for (x, gesture) in [(0.2, GestureKind.oneFingerHoldLeftTap), (0.7, .oneFingerHoldRightTap)] {
             let g: Set<GestureKind> = [gesture]
             var r = ConfigurableGestureRecognizer()
             let anchors = contacts(1)
@@ -129,7 +129,7 @@ final class ExpandedGestureTests: XCTestCase {
         let g: Set<GestureKind> = [.twoFingerHoldRightDoubleTap, .twoFingerHoldRightTap]
         let anchors = contacts(2)
         hold(&r, anchors, g)
-        let tapped = anchors + [TouchContact(id: 9, position: TouchPoint(x: 0.8, y: 0.5))]
+        let tapped = anchors + [TouchContact(id: 9, position: TouchPoint(x: 0.7, y: 0.5))]
         for t in [0.2, 0.3, 0.4] {
             send(&r, t, tapped, g)
             XCTAssertEqual(send(&r, t + 0.04, anchors, g), t == 0.3 ? [.twoFingerHoldRightDoubleTap] : [])
@@ -145,7 +145,7 @@ final class ExpandedGestureTests: XCTestCase {
             hold(&r, anchors, g)
             send(&r, 0.20, anchors + [TouchContact(id: 9, position: TouchPoint(x: 0.2, y: 0.5))], g)
             send(&r, 0.24, anchors, g)
-            send(&r, 0.30, anchors + [TouchContact(id: 10, position: TouchPoint(x: 0.8, y: 0.5))], g)
+            send(&r, 0.30, anchors + [TouchContact(id: 10, position: TouchPoint(x: 0.7, y: 0.5))], g)
             send(&r, 0.34, anchors, g)
             if release { send(&r, 0.38, [], g) }
             let result = r.flush(deviceID: "A", timestamp: 0.70, contextID: "app:1", gestures: g).gestures

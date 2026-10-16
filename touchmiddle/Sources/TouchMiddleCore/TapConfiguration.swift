@@ -12,6 +12,9 @@ public struct TapConfiguration: Sendable, Equatable {
     public let missingContactGrace: Double
     public let maximumFrameGap: Double
     public let cooldown: Double
+    /// Largest horizontal gap between neighbouring fingers of one gesture, as a fraction of trackpad width.
+    /// Deliberate three- and four-finger taps in local traces stayed below about 0.16 per gap.
+    public let maximumFingerGap: Double
 
     public init() {
         maximumMovement = 0.025
@@ -21,6 +24,7 @@ public struct TapConfiguration: Sendable, Equatable {
         missingContactGrace = 0.04
         maximumFrameGap = 0.12
         cooldown = 0.25
+        maximumFingerGap = 0.35
     }
 
     /// Custom values are rejected explicitly rather than clamped to an unnoticed fallback.
@@ -31,7 +35,8 @@ public struct TapConfiguration: Sendable, Equatable {
         minimumThreeFingerOverlap: Double = 0.015,
         missingContactGrace: Double = 0.04,
         maximumFrameGap: Double = 0.12,
-        cooldown: Double = 0.25
+        cooldown: Double = 0.25,
+        maximumFingerGap: Double = 0.35
     ) throws {
         for (field, value) in [
             ("maximumMovement", maximumMovement),
@@ -39,6 +44,7 @@ public struct TapConfiguration: Sendable, Equatable {
             ("onsetWindow", onsetWindow),
             ("minimumThreeFingerOverlap", minimumThreeFingerOverlap),
             ("maximumFrameGap", maximumFrameGap),
+            ("maximumFingerGap", maximumFingerGap),
         ] {
             guard value.isFinite, value > 0 else {
                 throw TapConfigurationError.invalidValue(field: field)
@@ -58,5 +64,6 @@ public struct TapConfiguration: Sendable, Equatable {
         self.missingContactGrace = missingContactGrace
         self.maximumFrameGap = maximumFrameGap
         self.cooldown = cooldown
+        self.maximumFingerGap = maximumFingerGap
     }
 }
