@@ -123,3 +123,51 @@ final class NativeContactAdapterTests: XCTestCase {
         XCTAssertEqual(frame.contacts.map(\.id), [1])
     }
 }
+
+final class NativeContactAdapterPalmTests: XCTestCase {
+    private func raw(_ id: Int, state: Int, major: Double, x: Double = 0.5) -> RawTouchContact {
+        RawTouchContact(id: id, state: state, position: TouchPoint(x: x, y: 0.5), majorAxis: major)
+    }
+
+    func testMajorAxisAtOrAboveLimitMarksPalm() {
+        var adapter = NativeContactAdapter(palmMajorAxis: 20)
+        _ = adapter.map(deviceID: "A", timestamp: 0, contacts: [])
+        let frame = adapter.map(deviceID: "A", timestamp: 0.01,
+                                contacts: [raw(1, state: 3, major: 14.9), raw(2, state: 4, major: 20), raw(3, state: 4, major: 26)])!
+        XCTAssertEqual(frame.contacts.map(\.isPalm), [false, true, true])
+    }
+
+    func testMissingAxisDataIsNotPalm() {
+        var adapter = NativeContactAdapter()
+        _ = adapter.map(deviceID: "A", timestamp: 0, contacts: [])
+        let frame = adapter.map(deviceID: "A", timestamp: 0.01,
+                                contacts: [RawTouchContact(id: 1, state: 3, position: TouchPoint(x: 0.5, y: 0.5))])!
+        XCTAssertEqual(frame.contacts.map(\.isPalm), [false])
+    }
+
+    func testPalmBesideFingersRejectsTapUntilAllContactsRelease() {
+        var adapter = NativeContactAdapter()
+        var recognizer = ConfigurableGestureRecognizer()
+        let gestures: Set<GestureKind> = [.threeFingerTap]
+        func step(_ time: Double, _ contacts: [RawTouchContact]) -> GestureRecognitionOutcome {
+            recognizer.process(adapter.map(deviceID: "A", timestamp: time, contacts: contacts)!,
+                               contextID: "app", gestures: gestures)
+        }
+        _ = adapter.map(deviceID: "A", timestamp: 0, contacts: [])
+        let fingers = [raw(1, state: 3, major: 8, x: 0.4), raw(2, state: 3, major: 8, x: 0.5)]
+        let palm = step(0.01, fingers + [raw(3, state: 3, major: 24, x: 0.9)])
+        XCTAssertEqual(palm.diagnostics, [.gestureRejected(.palmContact(contactID: 3))])
+        XCTAssertEqual(palm.phase, .blockedUntilRelease)
+        let ended = step(0.08, [raw(1, state: 7, major: 8), raw(2, state: 7, major: 8), raw(3, state: 7, major: 24)])
+        XCTAssertTrue(ended.gestures.isEmpty)
+
+        // A clean three-finger tap afterwards is still recognized.
+        _ = step(0.5, [])
+        let touch = [raw(4, state: 3, major: 8, x: 0.4), raw(5, state: 3, major: 9, x: 0.5), raw(6, state: 3, major: 8, x: 0.6)]
+        _ = step(0.6, touch)
+        let held = touch.map { raw($0.id, state: 4, major: $0.majorAxis, x: $0.position.x) }
+        _ = step(0.63, held)
+        let tap = step(0.66, held.map { raw($0.id, state: 7, major: $0.majorAxis, x: $0.position.x) })
+        XCTAssertEqual(tap.gestures, [.threeFingerTap])
+    }
+}

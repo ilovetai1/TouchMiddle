@@ -4,20 +4,30 @@ public struct RawTouchContact: Sendable, Equatable {
     public let id: Int
     public let state: Int
     public let position: TouchPoint
+    /// Sensor ellipse major axis in the private framework's units; zero when unavailable.
+    public let majorAxis: Double
 
-    public init(id: Int, state: Int, position: TouchPoint) {
+    public init(id: Int, state: Int, position: TouchPoint, majorAxis: Double = 0) {
         self.id = id
         self.state = state
         self.position = position
+        self.majorAxis = majorAxis
     }
 }
 
 /// Arms each device only after observing hands off. This prevents enabling in the
 /// middle of an existing gesture from treating that gesture as a new three-finger tap.
 public struct NativeContactAdapter: Sendable {
+    /// Fingertip contacts on the built-in trackpad measured 5.7–14.9 (p99 11.6) in local traces.
+    /// The palm limit is set clear of that range; it has not yet been calibrated against palm traces.
+    public static let defaultPalmMajorAxis = 20.0
+    public let palmMajorAxis: Double
     private var devices: [String: AdapterDeviceState] = [:]
 
-    public init() {}
+    public init(palmMajorAxis: Double = NativeContactAdapter.defaultPalmMajorAxis) {
+        precondition(palmMajorAxis.isFinite && palmMajorAxis > 0, "Palm major axis must be finite and positive")
+        self.palmMajorAxis = palmMajorAxis
+    }
 
     public func isArmed(deviceID: String) -> Bool {
         devices[deviceID]?.armed ?? false
@@ -58,7 +68,8 @@ public struct NativeContactAdapter: Sendable {
                 phase = .ended
             default: return nil
             }
-            return TouchContact(id: contact.id, position: contact.position, phase: phase)
+            return TouchContact(id: contact.id, position: contact.position, phase: phase,
+                                isPalm: contact.majorAxis >= palmMajorAxis)
         }
         if active.isEmpty { state.knownIDs.removeAll() }
         devices[deviceID] = state

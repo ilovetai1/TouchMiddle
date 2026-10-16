@@ -27,6 +27,7 @@ final class TouchController: ObservableObject {
     @Published var doubleTapInterval = 0.35
     private var recognizer = ConfigurableGestureRecognizer()
     private var adapter = NativeContactAdapter()
+    private var typingGuard = TypingGuard()
     private let output = MiddleClickOutput()
     private let keyboardOutput = KeyboardShortcutOutput()
     private var ruleStore: RuleStore?
@@ -184,7 +185,8 @@ final class TouchController: ObservableObject {
                     "receivedWallTime": frame.receivedWallTime, "sequence": frame.sequence,
                     "delayMS": delay, "invalidReason": frame.invalidReason,
                     "foreground": foreground?.bundleIdentifier ?? "unknown", "foregroundPID": foreground?.processIdentifier ?? 0,
-                    "contacts": frame.contacts.map { ["id": $0.id, "state": $0.state, "x": $0.x, "y": $0.y] as [String: Any] }])
+                    "contacts": frame.contacts.map { ["id": $0.id, "state": $0.state, "x": $0.x, "y": $0.y,
+                                                      "major": $0.major, "minor": $0.minor] as [String: Any] }])
         }
         guard frame.invalidReason == 0 else {
             enabled = false; resetRecognition(); setIssue("source", "觸控資料無效（\(frame.invalidReason)），已暫停手勢。")
@@ -198,8 +200,13 @@ final class TouchController: ObservableObject {
         clocks[device] = DeviceClock(timestamp: frame.timestamp, receivedUptime: frame.receivedUptime)
         guard let mapped = adapter.map(deviceID: device, timestamp: frame.timestamp,
             sequence: UInt64(UInt32(bitPattern: frame.sequence)),
-            contacts: frame.contacts.map { RawTouchContact(id: $0.id, state: $0.state, position: TouchPoint(x: $0.x, y: $0.y)) }) else {
+            contacts: frame.contacts.map { RawTouchContact(id: $0.id, state: $0.state, position: TouchPoint(x: $0.x, y: $0.y), majorAxis: $0.major) }) else {
             phase = adapter.isArmed(deviceID: device) ? "校準完成，等待點按" : "等待所有手指放開"; return
+        }
+        // Touches that begin while typing never reach the recognizer, even after the window ends.
+        guard typingGuard.admits(at: Double(frame.receivedUptime) / 1_000_000_000,
+                                 activeContactCount: mapped.contacts.filter { $0.phase.isActive }.count) else {
+            phase = "打字中，手勢暫停"; return
         }
         let gestures = RuleConfiguration(rules: rules).gestures(bundleIdentifier: foreground?.bundleIdentifier, modifiers: heldModifiers)
         let result = recognizer.process(mapped, contextID: currentContext, gestures: gestures)
@@ -349,6 +356,12 @@ final class TouchController: ObservableObject {
             let marker = cg.getIntegerValueField(.eventSourceUserData)
             let isMiddle = marker & MiddleClickOutput.markerMask == MiddleClickOutput.markerPrefix && event.buttonNumber == 2
             let isKeyboard = marker & KeyboardShortcutOutput.markerMask == KeyboardShortcutOutput.markerPrefix
+            if event.type == .keyDown, !isKeyboard {
+                // Shortcuts posted by TouchMiddle itself are not typing.
+                let uptime = DispatchTime.now().uptimeNanoseconds
+                DispatchQueue.main.async { self?.noteTyping(uptime: uptime) }
+                return
+            }
             guard isMiddle || isKeyboard else { return }
             let type = (event.type == .otherMouseDown || event.type == .keyDown) ? "down" : "up"
             DispatchQueue.main.async { self?.receiveReceipt(marker: marker, type: type) }
@@ -356,6 +369,15 @@ final class TouchController: ObservableObject {
         let mask: NSEvent.EventTypeMask = [.otherMouseDown, .otherMouseUp, .keyDown, .keyUp, .flagsChanged]
         globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: mask, handler: observe)
         localMonitor = NSEvent.addLocalMonitorForEvents(matching: mask) { event in observe(event); return event }
+    }
+    private func noteTyping(uptime: UInt64) {
+        guard !shuttingDown else { return }
+        typingGuard.noteKeyDown(at: Double(uptime) / 1_000_000_000)
+        // Timing only; key codes and characters are never logged.
+        if trace { record(["type": "keyDown"]) }
+        // A keystroke also cancels a touch in progress and any pending single tap.
+        resetRecognition(preserveArming: contacts == 0, cancelManual: false)
+        phase = "打字中，手勢暫停"
     }
     private func receiveReceipt(marker: Int64, type: String) {
         guard var parts = pending[marker] else { return }
