@@ -1,4 +1,4 @@
-TouchMiddle 0.4.0 — 手勢、快捷鍵、App 規則與登入自動啟動設定
+TouchMiddle 0.5.0 — 手勢、快捷鍵、App 規則與登入自動啟動設定
 
 安裝位置：/Applications/TouchMiddle.app 或 ~/Applications/TouchMiddle.app
 原始碼：此目錄的 Sources/ 與 Tests/
