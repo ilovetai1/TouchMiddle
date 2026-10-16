@@ -1,100 +1,73 @@
 # TouchMiddle
 
-macOS 原生觸控板手勢與快捷鍵工具。目前原始碼支援兩指／三指雙擊、兩指固定後的左側／右側點擊、快捷鍵錄製，以及全域與 App 專屬規則；保留三指輕點中鍵功能。
+[繁體中文](README.zh-TW.md)
 
-兩指固定手勢：先讓兩指保持接觸且固定至少 150 ms，再用第三指於兩指左側或右側外緣輕點，放開第三指即可觸發。固定兩指時可重複點擊。左右以兩指的位置判定，不是觸控板左右半邊；觸發動作仍由規則指定。此功能已納入 `0.4.0-beta.1` 安裝包，新增手勢的真人觸控板驗收尚未完成。自動測試與待驗項目見[新增手勢驗證紀錄](docs/ANCHORED-GESTURES-VERIFICATION.md)。
+A native macOS menu bar app that turns trackpad gestures into keyboard shortcuts or a middle click. You choose the gesture, the action, and whether the rule applies to all apps or to one app.
 
-`0.4.0-beta.1` 另加入 12 種擴充手勢（合計 17 種），以及 ⌘／⌥／⌃／⇧ 作為手勢觸發條件。可在新增／編輯規則時勾選「需按住的按鍵」。操作、優先順序、規則格式相容性與待驗項目見[擴充手勢驗證紀錄](docs/EXPANDED-GESTURES-VERIFICATION.md)。新增手勢尚未完成真人觸控板驗收；本版儲存的 version 2 規則無法由舊版 App 讀取，降版時須一併還原規則備份。
+## What it does
 
-`0.4.0-beta.1` 加入 GitHub 更新檢查：App 執行期間每 24 小時自動檢查一次，支援正式版與測試版；也可從選單列「檢查更新…」或「狀態與設定 → 軟體更新」手動檢查。有新版時顯示更新內容，可按「開啟下載頁」前往 GitHub，再手動替換 App。此功能不需要 GitHub 登入或外部 Swift 套件。行為、版本識別與驗證範圍見[更新檢查說明](docs/UPDATE-CHECKING.md)。
+- **17 trackpad gestures**, listed below.
+- **Two kinds of action**: a keyboard shortcut you record (with ⌘ ⌥ ⌃ ⇧), or a middle click at the pointer.
+- **Global or per-app rules.** An enabled per-app rule takes priority over the global rule for the same gesture.
+- **Modifier conditions.** A rule can require ⌘, ⌥, ⌃ or ⇧ to be held during the gesture, so one gesture can trigger different actions.
+- **Update check.** The app checks GitHub for new releases once every 24 hours. You download and replace the app yourself.
 
-作者：[ilovetai1](https://github.com/ilovetai1)。採用 [MIT 授權](LICENSE)，允許所有人使用、修改、散布與商業使用；散布時須保留版權與授權文字。軟體按現況提供，不附保固。
+Taps do not need a physical click. Lift all fingers fully between taps.
 
-## 安裝測試版
+| Gesture | How to do it |
+|---|---|
+| Three-finger tap | Tap with three fingers, then lift. Default rule: middle click. |
+| Four-finger tap | Tap with four fingers, then lift. |
+| Two-finger double tap | Tap twice with two fingers. |
+| Three-finger double tap | Tap twice with three fingers. |
+| Three-finger long press | Hold three fingers still for at least 500 ms, then lift within 2 s. |
+| Corner two-finger tap (×4) | Tap with two fingers inside one corner (25% of width and height): top-left, top-right, bottom-left or bottom-right. |
+| One finger hold + left / right tap (×2) | Hold one finger still for 150 ms, then tap with another finger on its left or right. |
+| Two fingers hold + left / right tap (×2) | Hold two fingers still for 150 ms, then tap with a third finger outside them on the left or right. Keep holding to repeat. |
+| Two fingers hold + left / right double tap (×2) | Same as above, but tap twice with the third finger. |
+| Two fingers hold + swipe up / down (×2) | Hold two fingers still for 150 ms, then swipe a third finger up or down (at least 6% of the trackpad height). |
 
-公開測試版：**0.4.0-beta.1**，App 版本為 0.4.0（build 6）。此版本仍有未完成的驗收項目，詳見下方限制。
+"Left" and "right" are relative to the fingers you hold, not to the halves of the trackpad. Tap movement tolerance, tap duration and double-tap interval can be adjusted in the settings tab (狀態與設定).
 
-可到 [GitHub Releases](https://github.com/ilovetai1/TouchMiddle/releases/tag/v0.4.0-beta.1) 下載 `TouchMiddle-0.4.0-beta.1-macos-arm64.zip`。安裝包適用 Apple Silicon Mac，不需要 Xcode。「Source code」ZIP 是原始碼，不是可直接開啟的 App。
+## Install
 
-1. 解壓縮，將 `TouchMiddle.app` 放入 `/Applications` 或 `~/Applications`。
-2. 開啟 App。若 macOS 因無法驗證開發者而阻擋，確認來源可信後，依[安裝說明](docs/INSTALL.md)在「隱私權與安全性」手動允許。
-3. 授予「輔助使用」權限並新增手勢規則。每次啟動時，若權限、設定與觸控來源正常，手勢預設啟用；先碰一下觸控板，再完全放開以完成校準。若啟動時尚未取得權限，授權後再開啟「啟用手勢」。
+1. Download the latest `TouchMiddle-*-macos-arm64.zip` from [GitHub Releases](https://github.com/ilovetai1/TouchMiddle/releases). The "Source code" archives are not the app.
+2. Unzip it and move `TouchMiddle.app` to `/Applications` or `~/Applications`.
+3. Open the app. The app is not notarized by Apple, so macOS may block it the first time. If you trust the source, allow it in **System Settings → Privacy & Security**.
+4. Grant **Accessibility** permission when asked.
+5. Add a gesture rule. Then touch the trackpad once and lift all fingers to calibrate.
 
-沒有使用 Apple Developer ID 憑證或公證。公開測試包使用 ad-hoc 本機簽章；本機自用建置可使用固定的自簽憑證。兩者都不會取得 Apple 的開發者信任，也不會消除下載後的安全提示。
+**Permission is on, but the app still says it has no permission?** macOS can keep the permission of an older build. Quit TouchMiddle, remove it from the Accessibility list, add the new app again, and restart it.
 
-**權限開關已開，App 仍顯示未取得權限？** 更新或重新建置後，系統可能仍保留舊簽章的授權。請先結束 TouchMiddle，在「輔助使用」移除舊項目，加入目前安裝位置的新版 App，再重新啟動。詳見[簽章狀態與處理步驟](docs/SIGNING.md)，其中也說明本機自簽與 Apple 公證的差別。
+More detail (Traditional Chinese): [install, update and uninstall](docs/INSTALL.md) · [signing and permission troubleshooting](docs/SIGNING.md) · [full usage guide](touchmiddle/README.txt)
 
-[完整安裝、更新與移除說明](docs/INSTALL.md) · [手勢操作說明](touchmiddle/README.txt) · [測試版說明](docs/RELEASE-0.4.0-beta.1.md) · [0.2.0 歷史驗收](docs/VERIFICATION.md)
+## Requirements and known limits
 
-## 限制
+- **The app interface is in Traditional Chinese only.**
+- **Apple Silicon only.** Release builds contain arm64 only.
+- **Tested on one setup.** The package declares macOS 14 or later, but real-device testing covers only Apple M5, the built-in trackpad, and macOS 27.0.1. External Magic Trackpad and Intel Macs are not tested.
+- **Uses a private framework** (MultitouchSupport) to read touches. A macOS update can break it.
+- **Does not block macOS gestures.** A built-in macOS gesture and a TouchMiddle gesture can both fire.
+- **Missed or false triggers can happen.** Not all newer gestures have been tested by hand on a real trackpad.
+- **The target app decides the result.** TouchMiddle sends the shortcut; it cannot make an app respond to it.
+- **Not tested yet:** sleep/wake, long sessions, all palm contacts, and launch at login after a real re-login.
+- **Privacy:** rules and diagnostics stay on your Mac. The only network request is the GitHub release check.
 
-- 套件宣告最低 macOS 14；實機驗收僅涵蓋 Apple M5、內建觸控板與 macOS 27.0.1。最低版本宣告不代表所有版本已測試。
-- 此包僅含 arm64。Intel、外接 Magic Trackpad 與其他 macOS 版本尚未驗證。
-- 使用 MultitouchSupport 私有 framework，macOS 升級後需重新驗證。
-- 可能漏判或誤觸；不攔截 macOS 原生手勢，兩者可能同時觸發。不保證所有第三方 App 執行對應快捷鍵。
-- 真實 sleep/wake、長時間壓力、任意掌心接觸與登入自動啟動的重新登入驗收尚未完成。
-- 不上傳規則或診斷。App 透過 GitHub 查詢版本，下載與替換 App 仍由使用者操作。
+## Background
 
-## 開發過程
+TouchMiddle started as a study of how existing trackpad tools on the market handle touch input. That study used static analysis as design reference only. TouchMiddle's gesture recognition and event output are written from scratch for this project, and the project does not claim to reproduce any other product. Third-party research material is not in this repository and is not covered by this project's license.
 
-TouchMiddle 起於我對市面上觸控板控制工具的逆向研究。我透過 [REA（Reverse Engineer Anything）](https://github.com/morluto/rea) 專案，讓 Codex 連接 Ghidra，分析 BetterTouchTool（BTT）的 macOS 原生發行檔，再以調查結果作為設計線索，逐步開發目前的 Swift 原生觸控板工具。
+## Build from source
 
-開發過程如下：
-
-1. **先調查既有工具的架構。** 以 BetterTouchTool 6.908 的 arm64 發行樣本為對象，檢查封裝、符號、framework、反組譯與選定的呼叫路徑，研究觸控輸入、手勢處理、動作派送及腳本的程序邊界。REA 負責工具整合，Codex 協助追蹤與整理證據，Ghidra 提供原生程式分析；曾成功反編譯小型 XPC helper。
-2. **收斂成可驗證的 MVP。** 從「三指輕點 → 游標位置中鍵」開始，先用唯讀探測確認內建觸控板可接收全域接觸資料，再加入動作輸出。BTT 樣本中的 MultitouchSupport 使用線索，以及公開的觸控介面資料，都用來協助查核；私有資料結構仍須以本機探測確認。
-3. **實作 TouchMiddle 的辨識與介面。** 以 Swift／SwiftUI 建立選單列 App，使用 C bridge 接收觸控資料，在本專案中實作點按條件、手勢狀態、校準、取消與冷卻邏輯，並透過 macOS 事件 API 輸出中鍵及快捷鍵。相關實作見 [CTouchBridge](touchmiddle/Sources/CTouchBridge/CTouchBridge.c) 與 [TouchMiddleCore](touchmiddle/Sources/TouchMiddleCore)。
-4. **擴充成可編輯的手勢規則。** 加入兩指／三指雙擊、快捷鍵錄製、本機規則儲存，以及全域與指定 App 的對應。指定 App 的已啟用規則優先；切換 App 時取消尚未完成的手勢，避免把動作送到錯誤目標。
-5. **以測試與實際接收結果驗證。** 除自動測試外，使用獨立接收端核對事件的按下／放開、鍵碼、修飾鍵與目標 App，並由真人操作觸控板測試點按、滑動與捲動。0.2.0 的分段測試通過，但首輪漏判及額外事件原因仍為 `unclear`，保留於[驗收摘要](docs/VERIFICATION.md)。新測試包的驗證與限制見[0.4.0-beta.1 驗證](docs/BETA-VERIFICATION-0.4.0-beta.1.md)。
-6. **整理成可分享的開源測試版。** 加入登入自動啟動設定、作者與授權資訊、版本管理、安裝及簽章處理說明，以 MIT 授權公開原始碼，並透過 GitHub Releases 提供 Apple Silicon 測試包。本機自用可使用固定自簽憑證；公開測試包使用 ad-hoc，未做 Apple Developer ID 簽章或公證。
-
-逆向研究的結論有明確範圍：BTT 主程式的 Ghidra 全檔分析曾在 20 分鐘期限後逾時，沒有產生完整主程式偽碼或 call graph；所查的靜態路徑也沒有完成 BTT 的執行時驗證。因此，不能將本專案描述為完整還原 BTT，或宣稱兩者使用相同的手勢演算法。
-
-公開倉庫提供 TouchMiddle 的原始碼、測試與文件。研究用的 BTT 發行檔、抽取資料與原始分析記錄未納入 Git，已於 2026-10-14 從本專案工作目錄清除，以釋放磁碟空間；本專案的 MIT 授權適用範圍不包含這些第三方研究材料。
-
-## 從原始碼建置
-
-需要 macOS、Xcode/Swift 6 與 `python3`；沒有外部 Swift 套件。從倉庫根目錄執行：
+Requires macOS, Xcode / Swift 6 and Python 3. From the repository root:
 
 ```bash
 xcrun swift test --package-path touchmiddle --scratch-path /tmp/touchmiddle-tests
 bash touchmiddle/Tools/build-app.sh --output "$HOME/Applications/TouchMiddle.app"
 ```
 
-目的地必須尚未存在；建置不會替換現有 App、啟動 App、授予權限或登記登入項目。預設建置目前機器的架構。
+The output path must not exist yet. Signing, packaging and versioning: [docs/BUILDING.md](docs/BUILDING.md) (Traditional Chinese). Release history: [CHANGELOG](CHANGELOG.md).
 
-本機有 `~/Library/Application Support/TouchMiddle/Signing/identity.json` 時，建置會使用其中的固定憑證 SHA-1 指紋；私鑰存於鑰匙圈。也可用 `--signing-identity SHA1` 或 `TOUCHMIDDLE_SIGNING_IDENTITY` 指定憑證。設定無效或憑證不存在時會中止，不會改用 ad-hoc。沒有本機設定時維持原有 ad-hoc 行為；`--ad-hoc` 可明確選擇此模式，測試版打包腳本固定使用它。
+## License
 
-從 ad-hoc 改為憑證簽章後，需要重新授予輔助使用權限。之後維持同一憑證與 Bundle ID，可讓更新符合相同的簽章身分要求；權限是否保留仍需實機驗證。請保留憑證及私鑰，憑證重建或到期更換時重新驗證。
-
-測試版打包指令：
-
-```bash
-bash touchmiddle/Tools/package-beta-0.4.0.sh --output "$PWD/outputs/TouchMiddle-0.4.0-beta.1-macos-arm64"
-```
-
-輸出目錄必須尚未存在；腳本只在本機建置、打包及產生 SHA-256，不會 push、公開倉庫或發布 Releases。
-
-## 版本管理
-
-目前原始碼版本：`0.5.2`；build：`9`。
-
-可在「狀態與設定 → 選單列圖示」切換圖示顯示，並記住選擇。隱藏圖示不會暫停手勢；再次開啟 TouchMiddle App 可回到設定並恢復圖示。從 `0.3.0-beta.1` 起的安裝包包含此設定。
-
-採用 major／minor／patch 三段式版本規則，以 `touchmiddle/Tools/Info.plist` 為唯一來源。工具同步當期文件與 [CHANGELOG](CHANGELOG.md)，不自動 commit、tag 或 push。既有 beta 發布說明與歷史驗收保留原版號；新版本的發布包須另外準備。
-
-```bash
-./scripts/bump_version.sh current
-./scripts/bump_version.sh minor "新增功能摘要" --dry-run
-./scripts/bump_version.sh patch "修正摘要"
-./scripts/check_version_consistency.sh
-./scripts/check_version_consistency.sh --app /絕對路徑/TouchMiddle.app
-```
-
-完整規則見 [版本管理規範](docs/VERSIONING.md)。建置工具會在編譯前及產生 bundle 後執行一致性檢查。
-
-## 目錄
-
-- `touchmiddle/`：Swift 原始碼、測試與建置工具。
-- `docs/`：安裝說明、版本說明與驗收摘要。
-- `outputs/`、`work/`：本機產物與原始驗收資料，不納入 Git。
+[MIT](LICENSE) © [ilovetai1](https://github.com/ilovetai1). Provided as is, without warranty.

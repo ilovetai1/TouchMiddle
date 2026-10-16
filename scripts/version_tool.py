@@ -14,8 +14,9 @@ ROOT = Path(__file__).resolve().parent.parent
 PLIST = Path("touchmiddle/Tools/Info.plist")
 VERSION = r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
 PRERELEASE_IDENTIFIER = r"(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)"
+CURRENT_DOC = Path("docs/BUILDING.md")
 MARKERS = {
-    Path("README.md"): rf"(?m)^目前原始碼版本：`({VERSION})`；build：`([1-9][0-9]*)`。$",
+    CURRENT_DOC: rf"(?m)^目前原始碼版本：`({VERSION})`；build：`([1-9][0-9]*)`。$",
     Path("touchmiddle/README.txt"): rf"\ATouchMiddle ({VERSION}) —",
     Path("CHANGELOG.md"): rf"(?m)^## v({VERSION})（",
 }
@@ -48,8 +49,8 @@ def check(root, app=None):
         match = matches[0]
         if match[1] != version:
             raise ValueError(f"{path} 版本 {match[1]} 與來源 {version} 不一致")
-        if path.name == "README.md" and match[2] != build:
-            raise ValueError(f"README.md build {match[2]} 與來源 {build} 不一致")
+        if path == CURRENT_DOC and match[2] != build:
+            raise ValueError(f"{CURRENT_DOC} build {match[2]} 與來源 {build} 不一致")
         if path.name == "CHANGELOG.md":
             end = matches[1].start() if len(matches) > 1 else len(text)
             builds = re.findall(r"(?m)^- Build：([1-9][0-9]*)$", text[match.start():end])
@@ -101,7 +102,7 @@ def bump(root, kind, summary, dry_run=False):
             updates[path] = text[:first_release] + entry + text[first_release:]
         else:
             # Replace from the right so original match offsets remain valid.
-            if path.name == "README.md":
+            if path == CURRENT_DOC:
                 text = replace_group(text, match, 2, new_build)
             updates[path] = replace_group(text, match, 1, new_version)
     print(f"{version} / build {build} → {new_version} / build {new_build}")

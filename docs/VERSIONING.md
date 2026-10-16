@@ -1,6 +1,6 @@
 # 版本管理規範
 
-TouchMiddle 使用三段式版本、單一版本來源與明確的發布授權原則。此規範自建立後的版本操作適用；不回溯重編既有版本。目前版本與 build 以來源 plist 及 README 的當期版本欄位為準。
+TouchMiddle 使用三段式版本、單一版本來源與明確的發布授權原則。此規範自建立後的版本操作適用；不回溯重編既有版本。目前版本與 build 以來源 plist 及 docs/BUILDING.md 的當期版本欄位為準。
 
 ## 升版原則
 
@@ -31,7 +31,7 @@ TouchMiddle 使用三段式版本、單一版本來源與明確的發布授權�
 4. 經授權發布時，使用 annotated tag `vX.Y.Z`（正式版）或 `vX.Y.Z-beta.N`（測試版），並只推送當次精確 tag，不使用批次 `--tags`。
 5. 本機改檔或升版不等於已發布、已安裝或已通過實機驗收。commit、push／tag 與替換已安裝 App 依使用者明示的 target、版本及動作授權執行。
 
-使用 `./scripts/bump_version.sh <major|minor|patch> "摘要"` 同步來源 plist、README 當期版本欄位、操作說明首行及 CHANGELOG 最新紀錄，build 同時加一。`current` 只讀來源；`--dry-run` 先驗證並預覽，不改檔。升版前若來源或派生資訊不一致，工具會以非零狀態中止，不自動修補漂移。
+使用 `./scripts/bump_version.sh <major|minor|patch> "摘要"` 同步來源 plist、docs/BUILDING.md 當期版本欄位、操作說明首行及 CHANGELOG 最新紀錄，build 同時加一。`current` 只讀來源；`--dry-run` 先驗證並預覽，不改檔。升版前若來源或派生資訊不一致，工具會以非零狀態中止，不自動修補漂移。
 
 `./scripts/check_version_consistency.sh` 核對上述檔案；加上 `--app /絕對路徑/TouchMiddle.app` 會核對 bundle 的 App 版號及 build。建置工具在編譯前及簽章前執行此檢查。不安裝 Git hook，不宣稱已有 pre-push 硬閘。
 

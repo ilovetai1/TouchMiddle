@@ -9,7 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 FILES = ("scripts/version_tool.py", "scripts/bump_version.sh",
          "scripts/check_version_consistency.sh", "touchmiddle/Tools/Info.plist",
-         "README.md", "touchmiddle/README.txt", "CHANGELOG.md")
+         "docs/BUILDING.md", "touchmiddle/README.txt", "CHANGELOG.md")
 
 
 class VersionToolTests(unittest.TestCase):
@@ -57,11 +57,11 @@ class VersionToolTests(unittest.TestCase):
         self.assertEqual(before, self.snapshot())
 
     def test_drift_blocks_check_and_bump_without_writes(self):
-        for name in ("README.md", "touchmiddle/README.txt", "CHANGELOG.md"):
+        for name in ("docs/BUILDING.md", "touchmiddle/README.txt", "CHANGELOG.md"):
             with self.subTest(path=name):
                 path = self.root / name
                 original = path.read_text()
-                if name == "README.md":
+                if name == "docs/BUILDING.md":
                     changed = original.replace(f'目前原始碼版本：`{self.original["CFBundleShortVersionString"]}`',
                                                '目前原始碼版本：`99.99.99`', 1)
                 elif name == "CHANGELOG.md":
@@ -121,7 +121,7 @@ class VersionToolTests(unittest.TestCase):
         self.assertEqual(before, self.snapshot())
 
     def test_missing_marker_and_build_drift(self):
-        path = self.root / "README.md"
+        path = self.root / "docs/BUILDING.md"
         original = path.read_text()
         for text in (original.replace("目前原始碼版本：", "缺少標記："),
                      original.replace(f'build：`{self.original["CFBundleVersion"]}`', 'build：`999`')):
