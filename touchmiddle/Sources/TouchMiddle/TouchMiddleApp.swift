@@ -149,11 +149,7 @@ struct Dashboard: View {
                     .renderingMode(.template).resizable().scaledToFit()
                     .frame(width: 32, height: 32).foregroundStyle(.primary)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("手勢與快捷鍵").font(.title2.bold())
-                    Text("為全域或指定 App 設定觸控板手勢。")
-                        .font(.callout).foregroundStyle(.secondary)
-                }
+                Text("手勢與快捷鍵").font(.title2.bold())
                 Spacer()
                 Toggle("啟用手勢", isOn: Binding(get: { controller.enabled }, set: { controller.setEnabled($0) }))
                     .toggleStyle(.switch)
@@ -181,16 +177,12 @@ struct Dashboard: View {
                         .font(.caption).foregroundStyle(.secondary)
                     Text("雙擊是連續兩次輕點，每次完全放開；不需要按下觸控板。")
                         .font(.caption).foregroundStyle(.secondary)
-                    Text("進階手勢：先固定兩指至少 150 ms，再用第三指於兩指左側或右側外緣輕點並放開。兩指保持接觸時可重複點擊；左右以固定兩指的位置判定。")
-                        .font(.caption).foregroundStyle(.secondary)
                 }.padding(8)
             }
             if let ruleError { Text(ruleError).font(.callout).foregroundStyle(.red).textSelection(.enabled) }
             if let message = controller.errorMessage {
                 Text(message).font(.callout).foregroundStyle(.red).textSelection(.enabled)
             }
-            Text("編輯規則時暫停動作輸出。觸控狀態、輔助使用權限與點按設定位於「狀態與設定」。")
-                .font(.caption).foregroundStyle(.secondary)
         }.padding(16)
     }
 
@@ -293,7 +285,6 @@ struct Dashboard: View {
                     Text("MIT 授權：所有人皆可免費使用、修改、散布及商業使用。散布副本或重要部分時，必須保留版權與授權文字；不要求公開修改後的原始碼。")
                     Text("軟體按現況提供，不附保固；作者不承擔授權條款所列責任。完整英文條款附於安裝包與 App 的 LICENSE 檔案。")
                     Divider()
-                    Text("測試版限制：目前實機驗證僅涵蓋 Apple M5 的內建觸控板；外接觸控板、Intel 與其他 macOS 版本尚未驗證。可能漏判或誤觸，原生手勢也可能同時觸發。macOS 升級後需重新驗證。")
                     Text("此版本未使用 Apple Developer ID 簽章或公證。首次開啟可能需要手動允許；輸出動作需要輔助使用權限。登入自動啟動的重新登入驗收尚未完成。")
                 }
                 .font(.callout)

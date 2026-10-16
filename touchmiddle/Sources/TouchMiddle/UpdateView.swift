@@ -16,7 +16,7 @@ struct UpdateView: View {
                 Button("檢查更新") { Task { await checker.check() } }
                     .disabled(checker.isChecking || checker.installed == nil)
             }
-            Text("透過 GitHub 檢查正式版與測試版。App 執行期間每 24 小時自動檢查一次，也可隨時手動檢查。")
+            Text("App 執行期間每 24 小時自動檢查一次，也可隨時手動檢查。")
                 .font(.caption).foregroundStyle(.secondary)
             if let date = checker.lastSuccess {
                 Text("上次成功檢查：\(date.formatted(date: .abbreviated, time: .shortened))")
