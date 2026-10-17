@@ -24,15 +24,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var updateWindow: NSWindow?
     private var statusItem: NSStatusItem?
     private var defaultsObserver: NSObjectProtocol?
+    private var isBackgroundLoginLaunch = false
     func applicationDidFinishLaunching(_ notification: Notification) {
+        isBackgroundLoginLaunch = LaunchContext.isLoginItem(NSAppleEventManager.shared().currentAppleEvent)
         updateMenuBarIcon()
         defaultsObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification, object: nil, queue: .main
         ) { [weak self] _ in
             Task { @MainActor in self?.updateMenuBarIcon() }
         }
-        showWindow()
-        updateChecker.onUpdateAvailable = { [weak self] in self?.showUpdateWindow() }
+        if !isBackgroundLoginLaunch { showWindow() }
+        updateChecker.onUpdateAvailable = { [weak self] in
+            guard let self, !self.isBackgroundLoginLaunch else { return }
+            self.showUpdateWindow()
+        }
         updateChecker.start()
     }
     func applicationWillTerminate(_ notification: Notification) {
@@ -84,6 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return true
     }
     func showWindow() {
+        isBackgroundLoginLaunch = false
         if window == nil {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 820, height: 740),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
@@ -98,6 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func showUpdateWindow() {
+        isBackgroundLoginLaunch = false
         if updateWindow == nil {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 620, height: 540),
                 styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
@@ -206,7 +213,7 @@ struct Dashboard: View {
                     ))
                     .toggleStyle(.switch)
                     Text(loginItem.statusMessage).font(.caption).foregroundStyle(.secondary)
-                    Text("開機後登入此帳號時生效；權限與觸控來源正常時，啟動後手勢預設啟用。")
+                    Text("開機後登入此帳號時在背景啟動，不開啟視窗；權限與觸控來源正常時，手勢預設啟用。手動開啟 App 可顯示設定。")
                         .font(.caption).foregroundStyle(.secondary)
                     if loginItem.status == .requiresApproval {
                         Button("開啟系統登入項目設定") { loginItem.openSystemSettings() }
